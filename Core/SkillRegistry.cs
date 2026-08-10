@@ -69,6 +69,7 @@ public sealed class SkillRegistry
         registry.Register(new FlashJumpSkill(config.FlashJump, antiFlash));
         registry.Register(new GlazSkill(config.Glaz, glaz));
         registry.Register(new HolyHandGrenadeSkill(config.HolyHandGrenade, holyHandGrenades));
+        registry.Register(new KillInvincibilitySkill(config.KillInvincibility));
         registry.Register(new ExplosiveShotSkill(config.ExplosiveShot, explosions));
         registry.Register(new WallhackSkill(wallhack));
         registry.Register(new NightmareSkill(nightmare));

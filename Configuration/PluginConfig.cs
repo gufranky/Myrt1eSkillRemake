@@ -357,6 +357,12 @@ public sealed class HolyHandGrenadeSettings
     public int MaximumReplenishments { get; set; } = 1;
 }
 
+public sealed class KillInvincibilitySettings
+{
+    [JsonPropertyName("DurationSeconds")]
+    public float DurationSeconds { get; set; } = 5.0f;
+}
+
 public sealed class ExplosiveShotSettings
 {
     [JsonPropertyName("Damage")]
@@ -707,6 +713,13 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["KillInvincibility"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["ExplosiveShot"] = new()
         {
             Enabled = true,
@@ -811,6 +824,9 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("HolyHandGrenade")]
     public HolyHandGrenadeSettings HolyHandGrenade { get; set; } = new();
+
+    [JsonPropertyName("KillInvincibility")]
+    public KillInvincibilitySettings KillInvincibility { get; set; } = new();
 
     [JsonPropertyName("UnluckyCouples")]
     public UnluckyCouplesSettings UnluckyCouples { get; set; } = new();

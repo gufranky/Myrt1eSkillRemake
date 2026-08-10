@@ -61,6 +61,7 @@ var checks = new List<(string Name, Action Run)>
     ("FlashJump consumes blind and flash-detonate callbacks", CheckFlashJumpRouting),
     ("Glaz replenishes smoke grenades", CheckGlazRouting),
     ("HolyHandGrenade replenishes enhanced HE grenades", CheckHolyHandGrenadeRouting),
+    ("KillInvincibility consumes kill and pre-damage callbacks", CheckKillInvincibilityRouting),
     ("ExplosiveShot consumes bullet-impact callbacks", CheckExplosiveShotRouting),
     ("Wallhack is a passive visibility skill", CheckWallhackDescriptor),
     ("Xray variants cannot be combined", CheckXrayEventConflict),
@@ -649,6 +650,17 @@ static void CheckHolyHandGrenadeRouting()
         "HolyHandGrenade must conflict with other HE grenade behavior skills.");
     Assert(holyGrenade.Descriptor.Rarity == SkillRarity.Common,
         "HolyHandGrenade must preserve the reference common rarity.");
+}
+
+static void CheckKillInvincibilityRouting()
+{
+    var invincibility = new KillInvincibilitySkill(new KillInvincibilitySettings());
+    Assert(invincibility is IPlayerDeathSkill && invincibility is IPreDamageSkill,
+        "KillInvincibility must activate on kills and cancel damage before it is applied.");
+    Assert(invincibility is ITickSkill,
+        "KillInvincibility must expire and notify through the tick pipeline.");
+    Assert(invincibility.Descriptor.Rarity == SkillRarity.Common,
+        "KillInvincibility must use the common rarity.");
 }
 
 static void CheckExplosiveShotRouting()
