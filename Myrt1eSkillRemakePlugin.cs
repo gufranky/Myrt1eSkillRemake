@@ -1,0 +1,137 @@
+using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core.Attributes;
+using CounterStrikeSharp.API.Modules.Commands;
+using Microsoft.Extensions.Logging;
+using Myrt1eSkill_Remake.Configuration;
+using Myrt1eSkill_Remake.Core;
+
+namespace Myrt1eSkill_Remake;
+
+[MinimumApiVersion(371)]
+public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginConfig>
+{
+    public override string ModuleName => "Myrt1eSkill_Remake";
+    public override string ModuleVersion => "0.15.0-dev";
+    public override string ModuleAuthor => "gufranky and contributors";
+    public override string ModuleDescription => "A modular random-skill entertainment plugin for CS2.";
+
+    public PluginConfig Config { get; set; } = new();
+
+    private SkillRegistry _registry = null!;
+    private SkillManager _skillManager = null!;
+    private RoundCoordinator _roundCoordinator = null!;
+    private SkillEventRouter _eventRouter = null!;
+    private EventRegistry _eventRegistry = null!;
+    private RoundEventManager _roundEventManager = null!;
+    private DamageEventRouter _damageEventRouter = null!;
+    private ExplosiveProjectileService _explosions = null!;
+    private WallhackService _wallhack = null!;
+    private NightmareService _nightmare = null!;
+    private IlliterateService _illiterate = null!;
+    private RoundPresentationService _presentation = null!;
+
+    public void OnConfigParsed(PluginConfig config)
+    {
+        Config = config;
+    }
+
+    public override void Load(bool hotReload)
+    {
+        _explosions = new ExplosiveProjectileService(this, Config.ExplosiveShot);
+        _explosions.Load();
+        _wallhack = new WallhackService(this);
+        _nightmare = new NightmareService(this, Config.Nightmare);
+        _illiterate = new IlliterateService();
+        PluginText.Configure(_illiterate);
+        _registry = SkillRegistry.CreateDefault(Config, _explosions, _wallhack, _nightmare, _illiterate);
+        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack);
+        var performance = new PerformanceMonitor(this);
+        _skillManager = new SkillManager(this, _registry, performance);
+        _roundEventManager = new RoundEventManager(this, _eventRegistry, performance);
+        _presentation = new RoundPresentationService(this, _skillManager);
+        _roundCoordinator = new RoundCoordinator(this, _skillManager, _roundEventManager, _presentation);
+        _eventRouter = new SkillEventRouter(this, _skillManager, _roundEventManager, _wallhack, _nightmare, _illiterate, _presentation);
+        _damageEventRouter = new DamageEventRouter(this, _skillManager, _explosions);
+        _damageEventRouter.Load();
+
+        RegisterEventHandler<EventRoundStart>(_roundCoordinator.OnRoundStart, HookMode.Post);
+        RegisterEventHandler<EventRoundStart>(_explosions.OnRoundStart, HookMode.Pre);
+        RegisterEventHandler<EventRoundEnd>(_roundCoordinator.OnRoundEnd, HookMode.Post);
+        RegisterEventHandler<EventPlayerHurt>(_eventRouter.OnPlayerHurt, HookMode.Post);
+        RegisterEventHandler<EventPlayerDeath>(_eventRouter.OnPlayerDeath, HookMode.Post);
+        RegisterEventHandler<EventWeaponFire>(_eventRouter.OnWeaponFire, HookMode.Post);
+        RegisterEventHandler<EventBulletImpact>(_eventRouter.OnBulletImpact, HookMode.Post);
+        RegisterEventHandler<EventPlayerDeath>(_explosions.OnPlayerDeathPre, HookMode.Pre);
+        RegisterEventHandler<EventDecoyStarted>(_eventRouter.OnDecoyStarted, HookMode.Post);
+        RegisterEventHandler<EventPlayerSpawn>(_eventRouter.OnPlayerSpawn, HookMode.Post);
+        RegisterEventHandler<EventItemPickup>(_eventRouter.OnItemPickup, HookMode.Post);
+        RegisterEventHandler<EventPlayerDisconnect>(_eventRouter.OnPlayerDisconnect, HookMode.Post);
+        RegisterListener<Listeners.OnTick>(_eventRouter.OnTick);
+        RegisterListener<Listeners.CheckTransmit>(_eventRouter.OnCheckTransmit);
+        RegisterListener<Listeners.OnPlayerButtonsChanged>(_eventRouter.OnPlayerButtonsChanged);
+        RegisterListener<Listeners.OnServerPrecacheResources>(_nightmare.OnServerPrecacheResources);
+        AddCommand("css_rskill_status", "Show random-skill plugin status", OnStatusCommand);
+        AddCommand("css_useskill", "Activate your current active skill", OnUseSkillCommand);
+        AddCommand("css_forceevent", "Force the next round event from server console", OnForceEventCommand);
+
+        Logger.LogInformation(
+            "{Plugin} loaded ({SkillCount} registered skills, hotReload={HotReload})",
+            ModuleName,
+            _registry.Count,
+            hotReload);
+    }
+
+    public override void Unload(bool hotReload)
+    {
+        _damageEventRouter?.Unload();
+        _explosions?.Unload();
+        _roundCoordinator?.CancelPendingAssignment();
+        _presentation?.Clear();
+        _skillManager?.RevokeAll(clearSessions: true);
+        _roundEventManager?.EndRound();
+        _wallhack?.Dispose();
+        _nightmare?.Dispose();
+        PluginText.Reset();
+        Logger.LogInformation("{Plugin} unloaded (hotReload={HotReload})", ModuleName, hotReload);
+    }
+
+    private void OnStatusCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        command.ReplyToCommand(
+            $"[Myrt1eSkill_Remake] enabled={Config.Enabled}, skills={_registry.Count}, events={_eventRegistry.Count}, activeEvents=[{string.Join(",", _roundEventManager.ActiveEventIds)}], players={_skillManager.AssignedPlayerCount}, assignments={_skillManager.ActiveAssignmentCount}");
+    }
+
+    private void OnUseSkillCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player is null)
+        {
+            command.ReplyToCommand("This command can only be used by a player.");
+            return;
+        }
+
+        if (!_skillManager.TryActivate(player))
+        {
+            command.ReplyToCommand("[Myrt1eSkill_Remake] 当前没有可使用的主动技能。");
+        }
+    }
+
+    private void OnForceEventCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player is not null)
+        {
+            command.ReplyToCommand("[Myrt1eSkill_Remake] 该调试命令只能从服务器控制台使用。");
+            return;
+        }
+
+        if (command.ArgCount < 2)
+        {
+            command.ReplyToCommand("Usage: css_forceevent <EventId>");
+            return;
+        }
+
+        var eventId = command.GetArg(1);
+        command.ReplyToCommand(_roundEventManager.ForceNextEvent(eventId)
+            ? $"[Myrt1eSkill_Remake] Next round event forced to {eventId}."
+            : $"[Myrt1eSkill_Remake] Unknown event: {eventId}.");
+    }
+}

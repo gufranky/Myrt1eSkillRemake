@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Myrt1eSkill_Remake</RootNamespace>
+    <AssemblyName>Myrt1eSkill_Remake</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CounterStrikeSharp.API" Version="1.0.371" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+    <None Remove="tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="gamedata\Myrt1eSkill_Remake.gamedata.json"
+          CopyToOutputDirectory="PreserveNewest"
+          TargetPath="gamedata\Myrt1eSkill_Remake.gamedata.json" />
+  </ItemGroup>
+</Project>
