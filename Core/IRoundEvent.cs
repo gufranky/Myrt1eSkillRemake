@@ -49,6 +49,25 @@ public interface IRoundEventDecoyStarted
     void OnDecoyStarted(in RoundEventContext context, EventDecoyStarted @event);
 }
 
+public interface IRoundEventPreDamage
+{
+    void OnBeforeDamage(
+        in RoundEventContext context,
+        CCSPlayerController victim,
+        CCSPlayerController attacker,
+        CTakeDamageInfo damageInfo);
+}
+
+public interface IRoundEventGrenadeThrown
+{
+    void OnGrenadeThrown(in RoundEventContext context, EventGrenadeThrown @event);
+}
+
+public interface IRoundEventEntitySpawned
+{
+    void OnEntitySpawned(in RoundEventContext context, CEntityInstance entity);
+}
+
 public interface IRoundEventPlayerSpawn
 {
     void OnPlayerSpawn(in RoundEventContext context, EventPlayerSpawn @event);

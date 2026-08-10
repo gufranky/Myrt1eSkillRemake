@@ -22,6 +22,7 @@ public sealed class WallhackService : IDisposable
     private readonly Myrt1eSkillRemakePlugin _plugin;
     private readonly HashSet<uint> _viewers = new();
     private readonly Dictionary<string, VisionGrant> _eventGrants = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Dictionary<uint, HashSet<uint>>> _targetedEventGrants = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<uint, GlowPair> _glows = new();
     private readonly Dictionary<uint, DateTime> _temporarilyBlocked = new();
     private readonly HashSet<int> _scheduledSlots = new();
@@ -90,9 +91,45 @@ public sealed class WallhackService : IDisposable
         }
     }
 
+    public void SetTargetedGrant(string sourceId, IEnumerable<(uint Viewer, uint Target)> grants)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceId);
+        ArgumentNullException.ThrowIfNull(grants);
+        var wasInactive = ActiveVisionSourceCount == 0;
+        var targetsByViewer = new Dictionary<uint, HashSet<uint>>();
+        foreach (var (viewer, target) in grants)
+        {
+            if (!targetsByViewer.TryGetValue(viewer, out var targets))
+            {
+                targets = new HashSet<uint>();
+                targetsByViewer[viewer] = targets;
+            }
+
+            targets.Add(target);
+        }
+
+        if (targetsByViewer.Count == 0)
+        {
+            _targetedEventGrants.Remove(sourceId);
+            if (ActiveVisionSourceCount == 0)
+            {
+                DestroyAll();
+            }
+
+            return;
+        }
+
+        _targetedEventGrants[sourceId] = targetsByViewer;
+        if (wasInactive && ActiveVisionSourceCount > 0)
+        {
+            StartBuild();
+        }
+    }
+
     public void RemoveGrant(string sourceId)
     {
         _eventGrants.Remove(sourceId);
+        _targetedEventGrants.Remove(sourceId);
         if (ActiveVisionSourceCount == 0)
         {
             DestroyAll();
@@ -148,6 +185,7 @@ public sealed class WallhackService : IDisposable
         ExpireBlockedEntities();
         var glowSnapshot = BuildGlowSnapshot();
         BuildViewerPolicyMaps(out var policiesByController, out var policiesByPawn);
+        BuildTargetedPolicyMaps(out var targetsByController, out var targetsByPawn);
         var globalPolicy = GetGlobalPolicy();
 
         foreach (var (info, observer) in infoList)
@@ -163,11 +201,13 @@ public sealed class WallhackService : IDisposable
                 policiesByController,
                 policiesByPawn,
                 out var policy);
+            var targeted = TryGetTargetedPolicy(observer, targetsByController, targetsByPawn);
             foreach (var glow in glowSnapshot)
             {
-                if (canSee
-                    && glow.Showable
-                    && (policy.IncludeTeammates || glow.Pair.Team != policy.Team))
+                var visibleByGeneralGrant = canSee
+                    && (policy.IncludeTeammates || glow.Pair.Team != policy.Team);
+                var visibleByTargetedGrant = targeted?.Contains(glow.TargetIndex) == true;
+                if (glow.Showable && (visibleByGeneralGrant || visibleByTargetedGrant))
                 {
                     continue;
                 }
@@ -193,6 +233,7 @@ public sealed class WallhackService : IDisposable
         _disposed = true;
         _viewers.Clear();
         _eventGrants.Clear();
+        _targetedEventGrants.Clear();
         DestroyAll();
         _temporarilyBlocked.Clear();
         _scheduledSlots.Clear();
@@ -305,9 +346,9 @@ public sealed class WallhackService : IDisposable
         }
     }
 
-    private List<(GlowPair Pair, bool Showable)> BuildGlowSnapshot()
+    private List<(uint TargetIndex, GlowPair Pair, bool Showable)> BuildGlowSnapshot()
     {
-        var snapshot = new List<(GlowPair, bool)>(_glows.Count);
+        var snapshot = new List<(uint, GlowPair, bool)>(_glows.Count);
         foreach (var (targetIndex, pair) in _glows)
         {
             var target = Utilities.GetPlayerFromIndex((int)targetIndex);
@@ -318,10 +359,64 @@ public sealed class WallhackService : IDisposable
                            && pawn.Render.A is not 102 and not 128
                            && IsEntityValid(pair.RelayIndex)
                            && IsEntityValid(pair.GlowIndex);
-            snapshot.Add((pair, showable));
+            snapshot.Add((targetIndex, pair, showable));
         }
 
         return snapshot;
+    }
+
+    private void BuildTargetedPolicyMaps(
+        out Dictionary<uint, HashSet<uint>> byController,
+        out Dictionary<nint, HashSet<uint>> byPawn)
+    {
+        byController = new Dictionary<uint, HashSet<uint>>();
+        byPawn = new Dictionary<nint, HashSet<uint>>();
+        foreach (var grant in _targetedEventGrants.Values)
+        {
+            foreach (var (viewerIndex, targets) in grant)
+            {
+                var viewer = Utilities.GetPlayerFromIndex((int)viewerIndex);
+                var pawn = viewer?.PlayerPawn.Value;
+                if (viewer is not { IsValid: true } || pawn is not { IsValid: true })
+                {
+                    continue;
+                }
+
+                MergeTargets(byController, viewerIndex, targets);
+                MergeTargets(byPawn, pawn.Handle, targets);
+            }
+        }
+    }
+
+    private static HashSet<uint>? TryGetTargetedPolicy(
+        CCSPlayerController observer,
+        IReadOnlyDictionary<uint, HashSet<uint>> byController,
+        IReadOnlyDictionary<nint, HashSet<uint>> byPawn)
+    {
+        if (byController.TryGetValue(observer.Index, out var targets))
+        {
+            return targets;
+        }
+
+        var observedHandle = observer.Pawn.Value?.ObserverServices?.ObserverTarget?.Value?.Handle ?? nint.Zero;
+        return observedHandle != nint.Zero && byPawn.TryGetValue(observedHandle, out targets)
+            ? targets
+            : null;
+    }
+
+    private static void MergeTargets<TKey>(
+        IDictionary<TKey, HashSet<uint>> policies,
+        TKey key,
+        IEnumerable<uint> targets)
+        where TKey : notnull
+    {
+        if (!policies.TryGetValue(key, out var merged))
+        {
+            merged = new HashSet<uint>();
+            policies[key] = merged;
+        }
+
+        merged.UnionWith(targets);
     }
 
     private void BuildViewerPolicyMaps(
@@ -474,5 +569,5 @@ public sealed class WallhackService : IDisposable
         }
     }
 
-    private int ActiveVisionSourceCount => _viewers.Count + _eventGrants.Count;
+    private int ActiveVisionSourceCount => _viewers.Count + _eventGrants.Count + _targetedEventGrants.Count;
 }

@@ -61,9 +61,24 @@ public interface IPlayerHurtSkill
     void OnPlayerHurt(in SkillContext context, EventPlayerHurt @event);
 }
 
+public interface IPlayerHurtPreSkill
+{
+    void OnPlayerHurtPre(in SkillContext context, EventPlayerHurt @event);
+}
+
 public interface IPlayerDeathSkill
 {
     void OnPlayerDeath(in SkillContext context, EventPlayerDeath @event);
+}
+
+public interface IPlayerBlindSkill
+{
+    void OnPlayerBlind(in SkillContext context, EventPlayerBlind @event);
+}
+
+public interface IFlashbangDetonateSkill
+{
+    void OnFlashbangDetonate(in SkillContext context, EventFlashbangDetonate @event);
 }
 
 public interface IWeaponFireSkill
@@ -76,7 +91,37 @@ public interface IBulletImpactSkill
     void OnBulletImpact(in SkillContext context, EventBulletImpact @event);
 }
 
+public interface IDecoyStartedSkill
+{
+    void OnDecoyStarted(in SkillContext context, EventDecoyStarted @event);
+}
+
+public interface IDecoyDetonateSkill
+{
+    void OnDecoyDetonate(in SkillContext context, EventDecoyDetonate @event);
+}
+
+public interface IGrenadeThrownSkill
+{
+    void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event);
+}
+
+public interface ISmokeDetonateSkill
+{
+    void OnSmokeDetonate(in SkillContext context, EventSmokegrenadeDetonate @event);
+}
+
+public interface ISmokeExpiredSkill
+{
+    void OnSmokeExpired(in SkillContext context, EventSmokegrenadeExpired @event);
+}
+
 public interface IPreDamageSkill
 {
     void OnBeforeDamage(in SkillContext context, CTakeDamageInfo damageInfo);
+}
+
+public interface IPreDamageAttackerSkill
+{
+    void OnBeforeDamageDealt(in SkillContext context, CCSPlayerController victim, CTakeDamageInfo damageInfo);
 }

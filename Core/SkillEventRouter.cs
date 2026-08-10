@@ -15,6 +15,9 @@ public sealed class SkillEventRouter
     private readonly WallhackService _wallhack;
     private readonly NightmareService _nightmare;
     private readonly IlliterateService _illiterate;
+    private readonly GhostService _ghosts;
+    private readonly ChickenService _chickens;
+    private readonly GlazService _glaz;
     private readonly RoundPresentationService _presentation;
 
     public SkillEventRouter(
@@ -24,6 +27,9 @@ public sealed class SkillEventRouter
         WallhackService wallhack,
         NightmareService nightmare,
         IlliterateService illiterate,
+        GhostService ghosts,
+        ChickenService chickens,
+        GlazService glaz,
         RoundPresentationService presentation)
     {
         _plugin = plugin;
@@ -32,6 +38,9 @@ public sealed class SkillEventRouter
         _wallhack = wallhack;
         _nightmare = nightmare;
         _illiterate = illiterate;
+        _ghosts = ghosts;
+        _chickens = chickens;
+        _glaz = glaz;
         _presentation = presentation;
     }
 
@@ -46,6 +55,20 @@ public sealed class SkillEventRouter
         return HookResult.Continue;
     }
 
+    public HookResult OnPlayerHurtPre(EventPlayerHurt @event, GameEventInfo info)
+    {
+        if (@event.DmgHealth <= 0 && @event.DmgArmor <= 0)
+        {
+            return HookResult.Continue;
+        }
+
+        _skills.DispatchForPlayer<IPlayerHurtPreSkill>(
+            @event.Userid,
+            "Event.PlayerHurt.Pre",
+            (handler, context) => handler.OnPlayerHurtPre(context, @event));
+        return HookResult.Continue;
+    }
+
     public HookResult OnPlayerDeath(EventPlayerDeath @event, GameEventInfo info)
     {
         _wallhack.RemoveTarget(@event.Userid);
@@ -53,6 +76,23 @@ public sealed class SkillEventRouter
         _skills.Dispatch<IPlayerDeathSkill>(
             "Event.PlayerDeath",
             (handler, context) => handler.OnPlayerDeath(context, @event));
+        return HookResult.Continue;
+    }
+
+    public HookResult OnPlayerBlind(EventPlayerBlind @event, GameEventInfo info)
+    {
+        _skills.Dispatch<IPlayerBlindSkill>(
+            "Event.PlayerBlind",
+            (handler, context) => handler.OnPlayerBlind(context, @event));
+        return HookResult.Continue;
+    }
+
+    public HookResult OnFlashbangDetonate(EventFlashbangDetonate @event, GameEventInfo info)
+    {
+        _skills.DispatchForPlayer<IFlashbangDetonateSkill>(
+            @event.Userid,
+            "Event.FlashbangDetonate",
+            (handler, context) => handler.OnFlashbangDetonate(context, @event));
         return HookResult.Continue;
     }
 
@@ -81,6 +121,51 @@ public sealed class SkillEventRouter
         _events.Dispatch<IRoundEventDecoyStarted>(
             "EventRound.DecoyStarted",
             (handler, context) => handler.OnDecoyStarted(context, @event));
+        _skills.DispatchForPlayer<IDecoyStartedSkill>(
+            @event.Userid,
+            "Event.DecoyStarted",
+            (handler, context) => handler.OnDecoyStarted(context, @event));
+        return HookResult.Continue;
+    }
+
+    public HookResult OnDecoyDetonate(EventDecoyDetonate @event, GameEventInfo info)
+    {
+        _skills.DispatchForPlayer<IDecoyDetonateSkill>(
+            @event.Userid,
+            "Event.DecoyDetonate",
+            (handler, context) => handler.OnDecoyDetonate(context, @event));
+        return HookResult.Continue;
+    }
+
+    public HookResult OnGrenadeThrown(EventGrenadeThrown @event, GameEventInfo info)
+    {
+        _events.Dispatch<IRoundEventGrenadeThrown>(
+            "EventRound.GrenadeThrown",
+            (handler, context) => handler.OnGrenadeThrown(context, @event));
+        _skills.DispatchForPlayer<IGrenadeThrownSkill>(
+            @event.Userid,
+            "Event.GrenadeThrown",
+            (handler, context) => handler.OnGrenadeThrown(context, @event));
+        return HookResult.Continue;
+    }
+
+    public HookResult OnSmokeDetonate(EventSmokegrenadeDetonate @event, GameEventInfo info)
+    {
+        _glaz.OnSmokeDetonate(@event);
+        _skills.DispatchForPlayer<ISmokeDetonateSkill>(
+            @event.Userid,
+            "Event.SmokeDetonate",
+            (handler, context) => handler.OnSmokeDetonate(context, @event));
+        return HookResult.Continue;
+    }
+
+    public HookResult OnSmokeExpired(EventSmokegrenadeExpired @event, GameEventInfo info)
+    {
+        _glaz.OnSmokeExpired(@event);
+        _skills.DispatchForPlayer<ISmokeExpiredSkill>(
+            @event.Userid,
+            "Event.SmokeExpired",
+            (handler, context) => handler.OnSmokeExpired(context, @event));
         return HookResult.Continue;
     }
 
@@ -126,9 +211,19 @@ public sealed class SkillEventRouter
             static (handler, context) => handler.OnTick(context));
     }
 
+    public void OnEntitySpawned(CEntityInstance entity)
+    {
+        _events.Dispatch<IRoundEventEntitySpawned>(
+            "EntitySpawned.ActiveEvents",
+            (handler, context) => handler.OnEntitySpawned(context, entity));
+    }
+
     public void OnCheckTransmit(CCheckTransmitInfoList infoList)
     {
         _wallhack.OnCheckTransmit(infoList);
+        _ghosts.OnCheckTransmit(infoList);
+        _chickens.OnCheckTransmit(infoList);
+        _glaz.OnCheckTransmit(infoList);
         _nightmare.OnCheckTransmit(infoList);
         _events.Dispatch<IRoundEventCheckTransmit>(
             "CheckTransmit.ActiveEvents",

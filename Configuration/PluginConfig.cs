@@ -42,6 +42,321 @@ public sealed class ArmoredSettings
     public float MaximumDamageMultiplier { get; set; } = 0.85f;
 }
 
+public sealed class DwarfSettings
+{
+    [JsonPropertyName("MinimumScale")]
+    public float MinimumScale { get; set; } = 0.60f;
+
+    [JsonPropertyName("MaximumScale")]
+    public float MaximumScale { get; set; } = 0.95f;
+}
+
+public sealed class EnemySpinSettings
+{
+    [JsonPropertyName("MinimumChance")]
+    public float MinimumChance { get; set; } = 0.20f;
+
+    [JsonPropertyName("MaximumChance")]
+    public float MaximumChance { get; set; } = 0.40f;
+}
+
+public sealed class DashSettings
+{
+    [JsonPropertyName("JumpVelocity")]
+    public float JumpVelocity { get; set; } = 150.0f;
+
+    [JsonPropertyName("PushVelocity")]
+    public float PushVelocity { get; set; } = 600.0f;
+
+    [JsonPropertyName("AnyDirection")]
+    public bool AnyDirection { get; set; } = true;
+
+    [JsonPropertyName("CooldownSeconds")]
+    public float CooldownSeconds { get; set; } = 2.0f;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 1.0f;
+}
+
+public sealed class FriendlyFireSettings
+{
+    [JsonPropertyName("HealthDamageMultiplier")]
+    public float HealthDamageMultiplier { get; set; } = 0.30f;
+}
+
+public sealed class FrozenDecoySettings
+{
+    [JsonPropertyName("TriggerRadius")]
+    public float TriggerRadius { get; set; } = 180.0f;
+
+    [JsonPropertyName("SlownessExponent")]
+    public int SlownessExponent { get; set; } = 5;
+
+    [JsonPropertyName("GrenadeLimit")]
+    public int GrenadeLimit { get; set; } = 3;
+}
+
+public sealed class ExplodingBarrelSettings
+{
+    [JsonPropertyName("ExplosionDamage")]
+    public float ExplosionDamage { get; set; } = 50.0f;
+
+    [JsonPropertyName("ExplosionRadius")]
+    public float ExplosionRadius { get; set; } = 600.0f;
+
+    [JsonPropertyName("PlacementDistance")]
+    public float PlacementDistance { get; set; } = 50.0f;
+
+    [JsonPropertyName("PropModel")]
+    public string PropModel { get; set; } = "models/props/de_train/hr_t/barrel_a/barrel_a.vmdl";
+}
+
+public sealed class RamboSettings
+{
+    [JsonPropertyName("MinimumExtraHealth")]
+    public int MinimumExtraHealth { get; set; } = 50;
+
+    [JsonPropertyName("MaximumExtraHealthExclusive")]
+    public int MaximumExtraHealthExclusive { get; set; } = 501;
+}
+
+public sealed class ToxicSmokeSettings
+{
+    [JsonPropertyName("Damage")]
+    public int Damage { get; set; } = 2;
+
+    [JsonPropertyName("Radius")]
+    public float Radius { get; set; } = 180.0f;
+
+    [JsonPropertyName("TickInterval")]
+    public int TickInterval { get; set; } = 17;
+
+    [JsonPropertyName("GrenadeLimit")]
+    public int GrenadeLimit { get; set; } = 1;
+
+    [JsonPropertyName("TeammateDamageMultiplier")]
+    public float TeammateDamageMultiplier { get; set; } = 0.50f;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 0.30f;
+}
+
+public sealed class PilotSettings
+{
+    [JsonPropertyName("MaximumFuel")]
+    public float MaximumFuel { get; set; } = 150.0f;
+
+    [JsonPropertyName("FuelConsumption")]
+    public float FuelConsumption { get; set; } = 0.64f;
+
+    [JsonPropertyName("Refuelling")]
+    public float Refuelling { get; set; } = 0.10f;
+
+    [JsonPropertyName("ForwardAcceleration")]
+    public float ForwardAcceleration { get; set; } = 5.0f;
+
+    [JsonPropertyName("UpwardAcceleration")]
+    public float UpwardAcceleration { get; set; } = 12.0f;
+}
+
+public sealed class BombMinerSettings
+{
+    [JsonPropertyName("DetonationRange")]
+    public float DetonationRange { get; set; } = 130.0f;
+
+    [JsonPropertyName("ArmingSeconds")]
+    public float ArmingSeconds { get; set; } = 3.0f;
+
+    [JsonPropertyName("DetonationDelaySeconds")]
+    public float DetonationDelaySeconds { get; set; } = 0.50f;
+
+    [JsonPropertyName("DamageMultiplier")]
+    public float DamageMultiplier { get; set; } = 2.0f;
+
+    [JsonPropertyName("RadiusMultiplier")]
+    public float RadiusMultiplier { get; set; } = 2.0f;
+
+    [JsonPropertyName("GrenadeLimit")]
+    public int GrenadeLimit { get; set; } = 3;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 1.0f;
+}
+
+public sealed class SoundMakerSettings
+{
+    [JsonPropertyName("CooldownSeconds")]
+    public float CooldownSeconds { get; set; } = 2.0f;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 1.0f;
+}
+
+public sealed class ThirdEyeSettings
+{
+    [JsonPropertyName("Distance")]
+    public float Distance { get; set; } = 100.0f;
+}
+
+public sealed class TimeRecallSettings
+{
+    [JsonPropertyName("HistorySeconds")]
+    public float HistorySeconds { get; set; } = 5.0f;
+
+    [JsonPropertyName("CaptureIntervalSeconds")]
+    public float CaptureIntervalSeconds { get; set; } = 0.25f;
+}
+
+public sealed class TimeControllerSettings
+{
+    [JsonPropertyName("SlowSpeed")]
+    public float SlowSpeed { get; set; } = 0.75f;
+
+    [JsonPropertyName("NormalSpeed")]
+    public float NormalSpeed { get; set; } = 1.0f;
+
+    [JsonPropertyName("FastSpeed")]
+    public float FastSpeed { get; set; } = 1.5f;
+}
+
+public sealed class MuhammadSettings
+{
+    [JsonPropertyName("ExplosionDamage")]
+    public float ExplosionDamage { get; set; } = 1500.0f;
+
+    [JsonPropertyName("ExplosionRadius")]
+    public float ExplosionRadius { get; set; } = 1000.0f;
+
+    [JsonPropertyName("TeammateDamageMultiplier")]
+    public float TeammateDamageMultiplier { get; set; } = 0.50f;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 1.0f;
+}
+
+public sealed class DisarmSettings
+{
+    [JsonPropertyName("MinimumChance")]
+    public float MinimumChance { get; set; } = 0.20f;
+
+    [JsonPropertyName("MaximumChance")]
+    public float MaximumChance { get; set; } = 0.35f;
+}
+
+public sealed class KillerFlashSettings
+{
+    [JsonPropertyName("MinimumFlashDuration")]
+    public float MinimumFlashDuration { get; set; } = 1.0f;
+
+    [JsonPropertyName("FriendlyFire")]
+    public bool FriendlyFire { get; set; } = true;
+
+    [JsonPropertyName("LethalDamage")]
+    public float LethalDamage { get; set; } = 9999.0f;
+}
+
+public sealed class PhoenixSettings
+{
+    [JsonPropertyName("MinimumChance")]
+    public float MinimumChance { get; set; } = 0.20f;
+
+    [JsonPropertyName("MaximumChance")]
+    public float MaximumChance { get; set; } = 0.40f;
+
+    [JsonPropertyName("ReviveHealth")]
+    public int ReviveHealth { get; set; } = 100;
+}
+
+public sealed class SecondChanceSettings
+{
+    [JsonPropertyName("ReviveHealth")]
+    public int ReviveHealth { get; set; } = 50;
+}
+
+public sealed class AntiFlashSettings
+{
+    [JsonPropertyName("FlashDuration")]
+    public float FlashDuration { get; set; } = 7.0f;
+
+    [JsonPropertyName("GrenadeCount")]
+    public int GrenadeCount { get; set; } = 2;
+}
+
+public sealed class ChickenSettings
+{
+    [JsonPropertyName("SpeedMultiplier")]
+    public float SpeedMultiplier { get; set; } = 1.10f;
+
+    [JsonPropertyName("HealthPenalty")]
+    public int HealthPenalty { get; set; } = 50;
+
+    [JsonPropertyName("PlayerScale")]
+    public float PlayerScale { get; set; } = 0.20f;
+}
+
+public sealed class FlashJumpSettings
+{
+    [JsonPropertyName("BaseJumpVelocity")]
+    public float BaseJumpVelocity { get; set; } = 200.0f;
+
+    [JsonPropertyName("VelocityPerBlindSecond")]
+    public float VelocityPerBlindSecond { get; set; } = 200.0f;
+
+    [JsonPropertyName("MaximumJumpVelocity")]
+    public float MaximumJumpVelocity { get; set; } = 800.0f;
+
+    [JsonPropertyName("MaximumReplenishments")]
+    public int MaximumReplenishments { get; set; } = 2;
+}
+
+public sealed class GlazSettings
+{
+    [JsonPropertyName("GrenadeCount")]
+    public int GrenadeCount { get; set; } = 3;
+}
+
+public sealed class UnluckyCouplesSettings
+{
+    [JsonPropertyName("DamageMultiplier")]
+    public float DamageMultiplier { get; set; } = 2.0f;
+}
+
+public sealed class SuperKnockbackSettings
+{
+    [JsonPropertyName("KnockbackForce")]
+    public float KnockbackForce { get; set; } = 1500.0f;
+
+    [JsonPropertyName("UpwardForce")]
+    public float UpwardForce { get; set; } = 200.0f;
+
+    [JsonPropertyName("MaximumSpeed")]
+    public float MaximumSpeed { get; set; } = 1000.0f;
+}
+
+public sealed class SuperRecoilSettings
+{
+    [JsonPropertyName("RecoilForce")]
+    public float RecoilForce { get; set; } = 500.0f;
+
+    [JsonPropertyName("UpwardRatio")]
+    public float UpwardRatio { get; set; } = 0.30f;
+
+    [JsonPropertyName("MaximumSpeed")]
+    public float MaximumSpeed { get; set; } = 600.0f;
+}
+
+public sealed class HolyHandGrenadeSettings
+{
+    [JsonPropertyName("DamageMultiplier")]
+    public float DamageMultiplier { get; set; } = 2.5f;
+
+    [JsonPropertyName("RadiusMultiplier")]
+    public float RadiusMultiplier { get; set; } = 2.5f;
+
+    [JsonPropertyName("MaximumReplenishments")]
+    public int MaximumReplenishments { get; set; } = 1;
+}
+
 public sealed class ExplosiveShotSettings
 {
     [JsonPropertyName("Damage")]
@@ -154,6 +469,244 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["IronHead"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Dwarf"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["EnemySpin"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["FireRain"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Epic",
+            MaxPerServer = -1
+        },
+        ["Dash"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["FriendlyFire"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["FrozenDecoy"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["ExplodingBarrel"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = 2
+        },
+        ["EnemySpawn"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["OneShot"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["NoRecoil"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Prosthesis"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["QuickShot"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Rambo"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["RadarHack"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["ToxicSmoke"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Pilot"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Meito"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = -1
+        },
+        ["BombMiner"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["SoundMaker"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["ThirdEye"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["TimeRecall"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["TimeController"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Muhammad"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Disarm"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["KillerFlash"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Epic",
+            MaxPerServer = 1
+        },
+        ["Phoenix"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["SecondChance"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Ghost"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Epic",
+            MaxPerServer = -1
+        },
+        ["AntiFlash"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Chicken"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["FlashJump"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Glaz"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["HolyHandGrenade"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["ExplosiveShot"] = new()
         {
             Enabled = true,
@@ -186,6 +739,87 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("Armored")]
     public ArmoredSettings Armored { get; set; } = new();
+
+    [JsonPropertyName("Dwarf")]
+    public DwarfSettings Dwarf { get; set; } = new();
+
+    [JsonPropertyName("EnemySpin")]
+    public EnemySpinSettings EnemySpin { get; set; } = new();
+
+    [JsonPropertyName("Dash")]
+    public DashSettings Dash { get; set; } = new();
+
+    [JsonPropertyName("FriendlyFire")]
+    public FriendlyFireSettings FriendlyFire { get; set; } = new();
+
+    [JsonPropertyName("FrozenDecoy")]
+    public FrozenDecoySettings FrozenDecoy { get; set; } = new();
+
+    [JsonPropertyName("ExplodingBarrel")]
+    public ExplodingBarrelSettings ExplodingBarrel { get; set; } = new();
+
+    [JsonPropertyName("Rambo")]
+    public RamboSettings Rambo { get; set; } = new();
+
+    [JsonPropertyName("ToxicSmoke")]
+    public ToxicSmokeSettings ToxicSmoke { get; set; } = new();
+
+    [JsonPropertyName("Pilot")]
+    public PilotSettings Pilot { get; set; } = new();
+
+    [JsonPropertyName("BombMiner")]
+    public BombMinerSettings BombMiner { get; set; } = new();
+
+    [JsonPropertyName("SoundMaker")]
+    public SoundMakerSettings SoundMaker { get; set; } = new();
+
+    [JsonPropertyName("ThirdEye")]
+    public ThirdEyeSettings ThirdEye { get; set; } = new();
+
+    [JsonPropertyName("TimeRecall")]
+    public TimeRecallSettings TimeRecall { get; set; } = new();
+
+    [JsonPropertyName("TimeController")]
+    public TimeControllerSettings TimeController { get; set; } = new();
+
+    [JsonPropertyName("Muhammad")]
+    public MuhammadSettings Muhammad { get; set; } = new();
+
+    [JsonPropertyName("Disarm")]
+    public DisarmSettings Disarm { get; set; } = new();
+
+    [JsonPropertyName("KillerFlash")]
+    public KillerFlashSettings KillerFlash { get; set; } = new();
+
+    [JsonPropertyName("Phoenix")]
+    public PhoenixSettings Phoenix { get; set; } = new();
+
+    [JsonPropertyName("SecondChance")]
+    public SecondChanceSettings SecondChance { get; set; } = new();
+
+    [JsonPropertyName("AntiFlash")]
+    public AntiFlashSettings AntiFlash { get; set; } = new();
+
+    [JsonPropertyName("Chicken")]
+    public ChickenSettings Chicken { get; set; } = new();
+
+    [JsonPropertyName("FlashJump")]
+    public FlashJumpSettings FlashJump { get; set; } = new();
+
+    [JsonPropertyName("Glaz")]
+    public GlazSettings Glaz { get; set; } = new();
+
+    [JsonPropertyName("HolyHandGrenade")]
+    public HolyHandGrenadeSettings HolyHandGrenade { get; set; } = new();
+
+    [JsonPropertyName("UnluckyCouples")]
+    public UnluckyCouplesSettings UnluckyCouples { get; set; } = new();
+
+    [JsonPropertyName("SuperKnockback")]
+    public SuperKnockbackSettings SuperKnockback { get; set; } = new();
+
+    [JsonPropertyName("SuperRecoil")]
+    public SuperRecoilSettings SuperRecoil { get; set; } = new();
 
     [JsonPropertyName("ExplosiveShot")]
     public ExplosiveShotSettings ExplosiveShot { get; set; } = new();
@@ -226,6 +860,10 @@ public sealed class PluginConfig : BasePluginConfig
         ["SwapOnHit"] = new() { Enabled = true, Weight = 10 },
         ["DecoyTeleport"] = new() { Enabled = true, Weight = 10 },
         ["ChickenMode"] = new() { Enabled = true, Weight = 10 },
+        ["InfiniteColoredSmoke"] = new() { Enabled = true, Weight = 10 },
+        ["UnluckyCouples"] = new() { Enabled = true, Weight = 10 },
+        ["SuperKnockback"] = new() { Enabled = true, Weight = 10 },
+        ["SuperRecoil"] = new() { Enabled = true, Weight = 10 },
         ["SuperpowerXray"] = new() { Enabled = true, Weight = 10 },
         ["Xray"] = new() { Enabled = true, Weight = 10 },
         ["TopTierParty"] = new() { Enabled = true, Weight = 3 },

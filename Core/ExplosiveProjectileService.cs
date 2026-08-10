@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
@@ -10,9 +11,14 @@ namespace Myrt1eSkill_Remake.Core;
 
 public sealed class ExplosiveProjectileService
 {
-    public readonly record struct DamageSource(uint OwnerIndex, int Team);
+    public readonly record struct DamageSource(uint OwnerIndex, int Team, float TeammateDamageMultiplier);
 
-    private sealed record SpawnRequest(uint OwnerIndex, byte Team);
+    private sealed record SpawnRequest(
+        uint OwnerIndex,
+        byte Team,
+        float Damage,
+        float Radius,
+        float TeammateDamageMultiplier);
     private sealed record KillCredit(uint AttackerIndex, int ExpiryTick);
 
     private const string GlobalNamePrefix = "myrt1eskill_explosiveshot_";
@@ -57,12 +63,40 @@ public sealed class ExplosiveProjectileService
 
     public bool TrySpawn(Vector position, CCSPlayerController owner)
     {
+        var damage = float.IsFinite(_settings.Damage) ? Math.Max(0.0f, _settings.Damage) : 25.0f;
+        var radius = float.IsFinite(_settings.DamageRadius) ? Math.Max(0.0f, _settings.DamageRadius) : 210.0f;
+        return TrySpawn(position, owner, damage, radius);
+    }
+
+    public bool TrySpawn(Vector position, CCSPlayerController owner, float damage, float radius)
+    {
+        var teammateMultiplier = float.IsFinite(_settings.TeammateDamageReduction)
+            ? 1.0f - Math.Clamp(_settings.TeammateDamageReduction, 0.0f, 1.0f)
+            : 0.50f;
+        return TrySpawn(position, owner.Index, owner.TeamNum, damage, radius, teammateMultiplier);
+    }
+
+    public bool TrySpawn(
+        Vector position,
+        uint ownerIndex,
+        byte team,
+        float damage,
+        float radius,
+        float teammateDamageMultiplier)
+    {
         if (!TryResolveFactory())
         {
             return false;
         }
 
-        var request = new SpawnRequest(owner.Index, owner.TeamNum);
+        var request = new SpawnRequest(
+            ownerIndex,
+            team,
+            float.IsFinite(damage) ? Math.Max(0.0f, damage) : 0.0f,
+            float.IsFinite(radius) ? Math.Max(0.0f, radius) : 0.0f,
+            float.IsFinite(teammateDamageMultiplier)
+                ? Math.Clamp(teammateDamageMultiplier, 0.0f, 1.0f)
+                : 0.50f);
         _pendingSpawns.Enqueue(request);
 
         try
@@ -75,7 +109,7 @@ public sealed class ExplosiveProjectileService
                 ZeroVelocity.Handle,
                 nint.Zero,
                 44,
-                owner.TeamNum);
+                team);
             return true;
         }
         catch (Exception exception)
@@ -95,10 +129,7 @@ public sealed class ExplosiveProjectileService
 
         if (victim.Index != source.OwnerIndex && victim.TeamNum == source.Team)
         {
-            var reduction = float.IsFinite(_settings.TeammateDamageReduction)
-                ? Math.Clamp(_settings.TeammateDamageReduction, 0.0f, 1.0f)
-                : 0.50f;
-            damageInfo.Damage *= 1.0f - reduction;
+            damageInfo.Damage *= source.TeammateDamageMultiplier;
         }
 
         return source;
@@ -188,10 +219,10 @@ public sealed class ExplosiveProjectileService
 
         projectile.TicksAtZeroVelocity = 100;
         projectile.TeamNum = source.Team;
-        projectile.Damage = float.IsFinite(_settings.Damage) ? Math.Max(0.0f, _settings.Damage) : 25.0f;
-        projectile.DmgRadius = float.IsFinite(_settings.DamageRadius) ? Math.Max(0.0f, _settings.DamageRadius) : 210.0f;
+        projectile.Damage = source.Damage;
+        projectile.DmgRadius = source.Radius;
         projectile.DetonateTime = 0.0f;
-        projectile.Globalname = $"{GlobalNamePrefix}{source.Team}_{source.OwnerIndex}_{projectile.Index}";
+        projectile.Globalname = $"{GlobalNamePrefix}{source.Team}_{source.OwnerIndex}_{source.TeammateDamageMultiplier.ToString("R", CultureInfo.InvariantCulture)}_{projectile.Index}";
     }
 
     private bool TryResolveFactory()
@@ -234,14 +265,15 @@ public sealed class ExplosiveProjectileService
         }
 
         var payload = attacker.Globalname[GlobalNamePrefix.Length..].Split('_');
-        if (payload.Length < 2
+        if (payload.Length < 3
             || !int.TryParse(payload[0], out var team)
-            || !uint.TryParse(payload[1], out var ownerIndex))
+            || !uint.TryParse(payload[1], out var ownerIndex)
+            || !float.TryParse(payload[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var teammateMultiplier))
         {
             return false;
         }
 
-        source = new DamageSource(ownerIndex, team);
+        source = new DamageSource(ownerIndex, team, Math.Clamp(teammateMultiplier, 0.0f, 1.0f));
         return true;
     }
 

@@ -28,6 +28,10 @@ public sealed class EventRegistry
         registry.Register(new SwapOnHitEvent());
         registry.Register(new DecoyTeleportEvent());
         registry.Register(new ChickenModeEvent());
+        registry.Register(new InfiniteColoredSmokeEvent());
+        registry.Register(new UnluckyCouplesEvent(config.UnluckyCouples, wallhack));
+        registry.Register(new SuperKnockbackEvent(config.SuperKnockback));
+        registry.Register(new SuperRecoilEvent(config.SuperRecoil));
         registry.Register(new SuperpowerXrayEvent(wallhack));
         registry.Register(new XrayEvent(wallhack));
         registry.Register(new TopTierPartyEvent());

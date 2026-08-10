@@ -25,9 +25,21 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private RoundEventManager _roundEventManager = null!;
     private DamageEventRouter _damageEventRouter = null!;
     private ExplosiveProjectileService _explosions = null!;
+    private ExplodingBarrelService _barrels = null!;
+    private FireRainService _fireRain = null!;
+    private FriendlyFireService _friendlyFire = null!;
+    private PlayerViewService _playerView = null!;
+    private NoRecoilService _noRecoil = null!;
+    private BombMinerService _bombMiner = null!;
     private WallhackService _wallhack = null!;
     private NightmareService _nightmare = null!;
     private IlliterateService _illiterate = null!;
+    private ThirdEyeService _thirdEye = null!;
+    private ReviveService _revives = null!;
+    private GhostService _ghosts = null!;
+    private ChickenService _chickens = null!;
+    private GlazService _glaz = null!;
+    private HolyHandGrenadeService _holyHandGrenades = null!;
     private RoundPresentationService _presentation = null!;
 
     public void OnConfigParsed(PluginConfig config)
@@ -39,34 +51,80 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     {
         _explosions = new ExplosiveProjectileService(this, Config.ExplosiveShot);
         _explosions.Load();
+        _barrels = new ExplodingBarrelService(this, Config.ExplodingBarrel, _explosions);
+        _barrels.Load();
+        _fireRain = new FireRainService(this);
+        _fireRain.Load();
+        _friendlyFire = new FriendlyFireService();
+        _playerView = new PlayerViewService(this);
+        _noRecoil = new NoRecoilService();
+        _bombMiner = new BombMinerService(this, Config.BombMiner);
+        _bombMiner.Load();
         _wallhack = new WallhackService(this);
         _nightmare = new NightmareService(this, Config.Nightmare);
         _illiterate = new IlliterateService();
+        _thirdEye = new ThirdEyeService(this, Config.ThirdEye);
+        _thirdEye.Load();
+        _revives = new ReviveService();
+        _ghosts = new GhostService();
+        _chickens = new ChickenService(this, Config.Chicken);
+        _chickens.Load();
+        _glaz = new GlazService();
+        _holyHandGrenades = new HolyHandGrenadeService(this, Config.HolyHandGrenade);
+        _holyHandGrenades.Load();
         PluginText.Configure(_illiterate);
-        _registry = SkillRegistry.CreateDefault(Config, _explosions, _wallhack, _nightmare, _illiterate);
+        _registry = SkillRegistry.CreateDefault(
+            Config,
+            _explosions,
+            _barrels,
+            _fireRain,
+            _friendlyFire,
+            _playerView,
+            _noRecoil,
+            _bombMiner,
+            _wallhack,
+            _nightmare,
+            _illiterate,
+            _thirdEye,
+            _revives,
+            _ghosts,
+            _chickens,
+            _glaz,
+            _holyHandGrenades);
         _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack);
         var performance = new PerformanceMonitor(this);
         _skillManager = new SkillManager(this, _registry, performance);
         _roundEventManager = new RoundEventManager(this, _eventRegistry, performance);
         _presentation = new RoundPresentationService(this, _skillManager);
         _roundCoordinator = new RoundCoordinator(this, _skillManager, _roundEventManager, _presentation);
-        _eventRouter = new SkillEventRouter(this, _skillManager, _roundEventManager, _wallhack, _nightmare, _illiterate, _presentation);
-        _damageEventRouter = new DamageEventRouter(this, _skillManager, _explosions);
+        _eventRouter = new SkillEventRouter(this, _skillManager, _roundEventManager, _wallhack, _nightmare, _illiterate, _ghosts, _chickens, _glaz, _presentation);
+        _damageEventRouter = new DamageEventRouter(this, _skillManager, _explosions, _roundEventManager);
         _damageEventRouter.Load();
 
         RegisterEventHandler<EventRoundStart>(_roundCoordinator.OnRoundStart, HookMode.Post);
         RegisterEventHandler<EventRoundStart>(_explosions.OnRoundStart, HookMode.Pre);
+        RegisterEventHandler<EventRoundStart>(_fireRain.OnRoundStart, HookMode.Pre);
+        RegisterEventHandler<EventRoundStart>(_friendlyFire.OnRoundStart, HookMode.Pre);
         RegisterEventHandler<EventRoundEnd>(_roundCoordinator.OnRoundEnd, HookMode.Post);
+        RegisterEventHandler<EventPlayerHurt>(_eventRouter.OnPlayerHurtPre, HookMode.Pre);
         RegisterEventHandler<EventPlayerHurt>(_eventRouter.OnPlayerHurt, HookMode.Post);
         RegisterEventHandler<EventPlayerDeath>(_eventRouter.OnPlayerDeath, HookMode.Post);
+        RegisterEventHandler<EventPlayerBlind>(_eventRouter.OnPlayerBlind, HookMode.Post);
+        RegisterEventHandler<EventFlashbangDetonate>(_eventRouter.OnFlashbangDetonate, HookMode.Post);
         RegisterEventHandler<EventWeaponFire>(_eventRouter.OnWeaponFire, HookMode.Post);
         RegisterEventHandler<EventBulletImpact>(_eventRouter.OnBulletImpact, HookMode.Post);
         RegisterEventHandler<EventPlayerDeath>(_explosions.OnPlayerDeathPre, HookMode.Pre);
         RegisterEventHandler<EventDecoyStarted>(_eventRouter.OnDecoyStarted, HookMode.Post);
+        RegisterEventHandler<EventDecoyDetonate>(_eventRouter.OnDecoyDetonate, HookMode.Post);
+        RegisterEventHandler<EventGrenadeThrown>(_eventRouter.OnGrenadeThrown, HookMode.Post);
+        RegisterEventHandler<EventSmokegrenadeDetonate>(_eventRouter.OnSmokeDetonate, HookMode.Post);
+        RegisterEventHandler<EventSmokegrenadeExpired>(_eventRouter.OnSmokeExpired, HookMode.Post);
+        RegisterEventHandler<EventRoundStart>(_glaz.OnRoundStart, HookMode.Pre);
         RegisterEventHandler<EventPlayerSpawn>(_eventRouter.OnPlayerSpawn, HookMode.Post);
         RegisterEventHandler<EventItemPickup>(_eventRouter.OnItemPickup, HookMode.Post);
         RegisterEventHandler<EventPlayerDisconnect>(_eventRouter.OnPlayerDisconnect, HookMode.Post);
         RegisterListener<Listeners.OnTick>(_eventRouter.OnTick);
+        RegisterListener<Listeners.OnEntitySpawned>(_eventRouter.OnEntitySpawned);
         RegisterListener<Listeners.CheckTransmit>(_eventRouter.OnCheckTransmit);
         RegisterListener<Listeners.OnPlayerButtonsChanged>(_eventRouter.OnPlayerButtonsChanged);
         RegisterListener<Listeners.OnServerPrecacheResources>(_nightmare.OnServerPrecacheResources);
@@ -84,6 +142,12 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     public override void Unload(bool hotReload)
     {
         _damageEventRouter?.Unload();
+        _noRecoil?.Reset();
+        _bombMiner?.Unload();
+        _holyHandGrenades?.Unload();
+        _friendlyFire?.Reset();
+        _fireRain?.Unload();
+        _barrels?.Unload();
         _explosions?.Unload();
         _roundCoordinator?.CancelPendingAssignment();
         _presentation?.Clear();
@@ -91,6 +155,10 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _roundEventManager?.EndRound();
         _wallhack?.Dispose();
         _nightmare?.Dispose();
+        _thirdEye?.Unload();
+        _ghosts?.Dispose();
+        _chickens?.Dispose();
+        _glaz?.Dispose();
         PluginText.Reset();
         Logger.LogInformation("{Plugin} unloaded (hotReload={HotReload})", ModuleName, hotReload);
     }

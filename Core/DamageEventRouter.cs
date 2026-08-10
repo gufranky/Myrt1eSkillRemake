@@ -8,16 +8,19 @@ public sealed class DamageEventRouter
     private readonly Myrt1eSkillRemakePlugin _plugin;
     private readonly SkillManager _skills;
     private readonly ExplosiveProjectileService _explosions;
+    private readonly RoundEventManager _events;
     private bool _hooked;
 
     public DamageEventRouter(
         Myrt1eSkillRemakePlugin plugin,
         SkillManager skills,
-        ExplosiveProjectileService explosions)
+        ExplosiveProjectileService explosions,
+        RoundEventManager events)
     {
         _plugin = plugin;
         _skills = skills;
         _explosions = explosions;
+        _events = events;
     }
 
     public void Load()
@@ -72,6 +75,19 @@ public sealed class DamageEventRouter
         }
 
         var explosion = _explosions.ApplyTeamDamageModifier(victim, damageInfo);
+
+        var attackerPawn = damageInfo.Attacker?.Value?.As<CCSPlayerPawn>();
+        var attacker = attackerPawn?.Controller?.Value?.As<CCSPlayerController>();
+        if (attacker is { IsValid: true } && attacker.Slot != victim.Slot)
+        {
+            _skills.DispatchForPlayer<IPreDamageAttackerSkill>(
+                attacker,
+                "Damage.Pre.AttackerSkills",
+                (handler, context) => handler.OnBeforeDamageDealt(context, victim, damageInfo));
+            _events.Dispatch<IRoundEventPreDamage>(
+                "Damage.Pre.ActiveEvents",
+                (handler, context) => handler.OnBeforeDamage(context, victim, attacker, damageInfo));
+        }
 
         _skills.DispatchForPlayer<IPreDamageSkill>(
             victim,
