@@ -855,6 +855,18 @@ public sealed class TrackerSettings
     public string ParticleName { get; set; } = "particles/ui/hud/ui_map_def_utility_trail.vpcf";
 }
 
+public sealed class RainyDaySettings
+{
+    [JsonPropertyName("MinimumHiddenSeconds")]
+    public float MinimumHiddenSeconds { get; set; } = 3.0f;
+
+    [JsonPropertyName("MaximumHiddenSeconds")]
+    public float MaximumHiddenSeconds { get; set; } = 10.0f;
+
+    [JsonPropertyName("VisibleDurationSeconds")]
+    public float VisibleDurationSeconds { get; set; } = 2.0f;
+}
+
 public sealed class ExplosiveShotSettings
 {
     [JsonPropertyName("Damage")]
@@ -1436,6 +1448,20 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = 1
         },
+        ["ZRY"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["AdaptiveDisguise"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["ExplosiveShot"] = new()
         {
             Enabled = true,
@@ -1704,6 +1730,9 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("Tracker")]
     public TrackerSettings Tracker { get; set; } = new();
 
+    [JsonPropertyName("RainyDay")]
+    public RainyDaySettings RainyDay { get; set; } = new();
+
     [JsonPropertyName("UnluckyCouples")]
     public UnluckyCouplesSettings UnluckyCouples { get; set; } = new();
 
@@ -1807,6 +1836,7 @@ public sealed class PluginConfig : BasePluginConfig
         ["AnywhereBombPlant"] = new() { Enabled = true, Weight = 10 },
         ["KillerSatellite"] = new() { Enabled = true, Weight = 10 },
         ["SkillMaster"] = new() { Enabled = true, Weight = 10 },
+        ["RainyDay"] = new() { Enabled = true, Weight = 10 },
         ["SuperpowerXray"] = new() { Enabled = true, Weight = 10 },
         ["Xray"] = new() { Enabled = true, Weight = 10 },
         ["TopTierParty"] = new() { Enabled = true, Weight = 3 },

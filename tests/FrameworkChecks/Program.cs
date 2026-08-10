@@ -48,6 +48,7 @@ var checks = new List<(string Name, Action Run)>
     ("UnluckyCouples consumes pre-damage callbacks", CheckUnluckyCouplesRouting),
     ("SuperKnockback consumes player-hurt callbacks", CheckSuperKnockbackRouting),
     ("SuperRecoil consumes weapon-fire callbacks", CheckSuperRecoilRouting),
+    ("RainyDay consumes visibility lifecycle callbacks", CheckRainyDayRouting),
     ("Skill state bags isolate assignment state", CheckSkillStateIsolation),
     ("Armored consumes the pre-damage pipeline", CheckArmoredRouting),
     ("BladeMaster conditionally deflects bullet damage while holding a knife", CheckBladeMasterDescriptor),
@@ -105,6 +106,8 @@ var checks = new List<(string Name, Action Run)>
     ("KillInvincibility consumes kill and pre-damage callbacks", CheckKillInvincibilityRouting),
     ("GodMode grants a two-second active damage immunity", CheckGodModeDescriptor),
     ("Illusionist deploys a damaging moving replica", CheckIllusionistDescriptor),
+    ("ZRY replenishes decoy grenades", CheckZryRouting),
+    ("AdaptiveDisguise consumes hurt and death callbacks", CheckAdaptiveDisguiseRouting),
     ("ExplosiveShot consumes bullet-impact callbacks", CheckExplosiveShotRouting),
     ("Wallhack is a passive visibility skill", CheckWallhackDescriptor),
     ("Xray variants cannot be combined", CheckXrayEventConflict),
@@ -706,6 +709,19 @@ static void CheckSuperRecoilRouting()
         "SuperRecoil must react to weapon-fire callbacks.");
     Assert(recoil.Descriptor.ExclusiveTags.Contains("weapon-recoil-force-rules"),
         "SuperRecoil must own global physical recoil rules.");
+}
+
+static void CheckRainyDayRouting()
+{
+    var rainyDay = new RainyDayEvent(new RainyDaySettings());
+    Assert(rainyDay is IRoundEventTick
+           && rainyDay is IRoundEventPlayerSpawn
+           && rainyDay is IRoundEventCheckTransmit,
+        "RainyDay must cycle phases, hide spawned players, and filter entity transmission.");
+    Assert(rainyDay.Descriptor.ExclusiveTags.Contains("player-visibility-rules"),
+        "RainyDay must own global player visibility rules.");
+    Assert(rainyDay.Descriptor.BlockedSkillTags.Contains("player-visibility-control"),
+        "RainyDay must block per-player visibility skills.");
 }
 
 static void CheckIronHeadRouting()
@@ -1402,6 +1418,29 @@ static void CheckIllusionistDescriptor()
         "Illusionist must preserve the reference movement, duration, and enemy-damage defaults.");
     Assert(illusionist.Descriptor.ConflictTags.Contains("world-prop-placement"),
         "Illusionist must participate in world-prop placement conflicts.");
+}
+
+static void CheckZryRouting()
+{
+    var zry = new ZrySkill();
+    Assert(zry is IGrenadeThrownSkill,
+        "ZRY must replenish decoys through grenade-thrown callbacks.");
+    Assert(zry.Descriptor.ConflictTags.Contains("decoy-behavior-control"),
+        "ZRY must conflict with other decoy behavior skills.");
+    Assert(zry.Descriptor.Rarity == SkillRarity.Common,
+        "ZRY must use the common rarity.");
+}
+
+static void CheckAdaptiveDisguiseRouting()
+{
+    var disguise = new AdaptiveDisguiseSkill();
+    Assert(disguise is IPlayerHurtSkill && disguise is IPlayerDeathSkill,
+        "AdaptiveDisguise must restore the model after damage or death.");
+    Assert(disguise.Descriptor.Kind == SkillKind.Active
+           && disguise.Descriptor.CooldownSeconds == 30.0f,
+        "AdaptiveDisguise must be an active skill with a 30-second cooldown.");
+    Assert(disguise.Descriptor.ConflictTags.Contains("player-model-control"),
+        "AdaptiveDisguise must declare ownership of the player model.");
 }
 
 static void CheckExplosiveShotRouting()

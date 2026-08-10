@@ -44,6 +44,7 @@ public sealed class EventRegistry
         registry.Register(new AnywhereBombPlantEvent());
         registry.Register(new KillerSatelliteEvent());
         registry.Register(new SkillMasterEvent());
+        registry.Register(new RainyDayEvent(config.RainyDay));
         registry.Register(new SuperpowerXrayEvent(wallhack));
         registry.Register(new XrayEvent(wallhack));
         registry.Register(new TopTierPartyEvent());

@@ -127,6 +127,8 @@ public sealed class SkillRegistry
         registry.Register(new HotBombSkill(config.HotBomb));
         registry.Register(new MagnifierSkill(config.Magnifier, fieldOfView));
         registry.Register(new TrackerSkill(tracker));
+        registry.Register(new ZrySkill());
+        registry.Register(new AdaptiveDisguiseSkill());
         registry.Register(new ExplosiveShotSkill(config.ExplosiveShot, explosions));
         registry.Register(new WallhackSkill(wallhack));
         registry.Register(new NightmareSkill(nightmare));
