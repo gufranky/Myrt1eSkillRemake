@@ -135,6 +135,11 @@ public interface ISmokeExpiredSkill
     void OnSmokeExpired(in SkillContext context, EventSmokegrenadeExpired @event);
 }
 
+public interface IEntitySpawnedSkill
+{
+    void OnEntitySpawned(in SkillContext context, CEntityInstance entity);
+}
+
 public interface IPreDamageSkill
 {
     void OnBeforeDamage(in SkillContext context, CTakeDamageInfo damageInfo);

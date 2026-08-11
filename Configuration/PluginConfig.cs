@@ -285,6 +285,15 @@ public sealed class SmallButDeadlySettings
     public int Health { get; set; } = 10;
 }
 
+public sealed class JumperSettings
+{
+    [JsonPropertyName("JumpVelocity")]
+    public float JumpVelocity { get; set; } = 300.0f;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 1.0f;
+}
+
 public sealed class DecoyXRaySettings
 {
     [JsonPropertyName("GrenadeCount")]
@@ -352,6 +361,27 @@ public sealed class ToxicSmokeSettings
 
     [JsonPropertyName("SoundVolume")]
     public float SoundVolume { get; set; } = 0.30f;
+}
+
+public sealed class HealingSmokeSettings
+{
+    [JsonPropertyName("HealPerTick")]
+    public int HealPerTick { get; set; } = 1;
+
+    [JsonPropertyName("Radius")]
+    public float Radius { get; set; } = 180.0f;
+
+    [JsonPropertyName("TickInterval")]
+    public int TickInterval { get; set; } = 16;
+
+    [JsonPropertyName("MaximumHealth")]
+    public int MaximumHealth { get; set; } = 150;
+
+    [JsonPropertyName("Replenishments")]
+    public int Replenishments { get; set; } = 1;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 0.50f;
 }
 
 public sealed class PilotSettings
@@ -574,6 +604,78 @@ public sealed class KillInvincibilitySettings
 {
     [JsonPropertyName("DurationSeconds")]
     public float DurationSeconds { get; set; } = 5.0f;
+}
+
+public sealed class GodModeSettings
+{
+    [JsonPropertyName("DurationSeconds")]
+    public float DurationSeconds { get; set; } = 2.0f;
+}
+
+public sealed class IllusionistSettings
+{
+    [JsonPropertyName("RunDurationSeconds")]
+    public float RunDurationSeconds { get; set; } = 5.0f;
+
+    [JsonPropertyName("CrouchDurationSeconds")]
+    public float CrouchDurationSeconds { get; set; } = 12.0f;
+
+    [JsonPropertyName("RunSpeed")]
+    public float RunSpeed { get; set; } = 224.0f;
+
+    [JsonPropertyName("CrouchSpeed")]
+    public float CrouchSpeed { get; set; } = 80.0f;
+
+    [JsonPropertyName("EnemyDamage")]
+    public float EnemyDamage { get; set; } = 20.0f;
+
+    [JsonPropertyName("SpawnDistance")]
+    public float SpawnDistance { get; set; } = 40.0f;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 1.0f;
+}
+
+public sealed class LongKnifeSettings
+{
+    [JsonPropertyName("MaximumDistance")]
+    public float MaximumDistance { get; set; } = 4096.0f;
+
+    [JsonPropertyName("FriendlyFire")]
+    public bool FriendlyFire { get; set; }
+
+    [JsonPropertyName("Damage")]
+    public float Damage { get; set; } = 9999.0f;
+}
+
+public sealed class LongZeusSettings
+{
+    [JsonPropertyName("MaximumDistance")]
+    public float MaximumDistance { get; set; } = 4096.0f;
+
+    [JsonPropertyName("FriendlyFire")]
+    public bool FriendlyFire { get; set; }
+
+    [JsonPropertyName("Damage")]
+    public float Damage { get; set; } = 9999.0f;
+}
+
+public sealed class HotBombSettings
+{
+    [JsonPropertyName("DamageIntervalSeconds")]
+    public float DamageIntervalSeconds { get; set; } = 1.0f;
+
+    [JsonPropertyName("Damage")]
+    public float Damage { get; set; } = 2.0f;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 0.35f;
+}
+
+public sealed class MagnifierSettings
+{
+    [JsonPropertyName("CustomFov")]
+    public uint CustomFov { get; set; } = 50;
 }
 
 public sealed class ExplosiveShotSettings
@@ -856,6 +958,13 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["HealingSmoke"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["Pilot"] = new()
         {
             Enabled = true,
@@ -989,6 +1098,48 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["GodMode"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Illusionist"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = 2
+        },
+        ["LongKnife"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["LongZeus"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Uncommon",
+            MaxPerServer = -1
+        },
+        ["HotBomb"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = 1
+        },
+        ["Magnifier"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["ExplosiveShot"] = new()
         {
             Enabled = true,
@@ -1080,6 +1231,13 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = 1
         },
+        ["Jumper"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["Jammer"] = new()
         {
             Enabled = true,
@@ -1128,6 +1286,9 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("ToxicSmoke")]
     public ToxicSmokeSettings ToxicSmoke { get; set; } = new();
+
+    [JsonPropertyName("HealingSmoke")]
+    public HealingSmokeSettings HealingSmoke { get; set; } = new();
 
     [JsonPropertyName("Pilot")]
     public PilotSettings Pilot { get; set; } = new();
@@ -1180,6 +1341,24 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("KillInvincibility")]
     public KillInvincibilitySettings KillInvincibility { get; set; } = new();
 
+    [JsonPropertyName("GodMode")]
+    public GodModeSettings GodMode { get; set; } = new();
+
+    [JsonPropertyName("Illusionist")]
+    public IllusionistSettings Illusionist { get; set; } = new();
+
+    [JsonPropertyName("LongKnife")]
+    public LongKnifeSettings LongKnife { get; set; } = new();
+
+    [JsonPropertyName("LongZeus")]
+    public LongZeusSettings LongZeus { get; set; } = new();
+
+    [JsonPropertyName("HotBomb")]
+    public HotBombSettings HotBomb { get; set; } = new();
+
+    [JsonPropertyName("Magnifier")]
+    public MagnifierSettings Magnifier { get; set; } = new();
+
     [JsonPropertyName("UnluckyCouples")]
     public UnluckyCouplesSettings UnluckyCouples { get; set; } = new();
 
@@ -1230,6 +1409,9 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("SmallButDeadly")]
     public SmallButDeadlySettings SmallButDeadly { get; set; } = new();
+
+    [JsonPropertyName("Jumper")]
+    public JumperSettings Jumper { get; set; } = new();
 
     [JsonPropertyName("EventsEnabled")]
     public bool EventsEnabled { get; set; } = true;

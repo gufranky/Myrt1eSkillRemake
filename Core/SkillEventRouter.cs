@@ -244,6 +244,27 @@ public sealed class SkillEventRouter
         _events.Dispatch<IRoundEventEntitySpawned>(
             "EntitySpawned.ActiveEvents",
             (handler, context) => handler.OnEntitySpawned(context, entity));
+
+        if (!string.Equals(entity.DesignerName, "smokegrenade_projectile", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        Server.NextFrame(() =>
+        {
+            if (!entity.IsValid)
+            {
+                return;
+            }
+
+            var grenade = entity.As<CBaseCSGrenadeProjectile>();
+            var pawn = grenade?.OwnerEntity.Value?.As<CCSPlayerPawn>();
+            var owner = pawn?.Controller.Value?.As<CCSPlayerController>();
+            _skills.DispatchForPlayer<IEntitySpawnedSkill>(
+                owner,
+                "EntitySpawned.PlayerSkills",
+                (handler, context) => handler.OnEntitySpawned(context, entity));
+        });
     }
 
     public void OnCheckTransmit(CCheckTransmitInfoList infoList)

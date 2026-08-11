@@ -11,7 +11,7 @@ namespace Myrt1eSkill_Remake;
 public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginConfig>
 {
     public override string ModuleName => "Myrt1eSkill_Remake";
-    public override string ModuleVersion => "0.37.0-dev";
+    public override string ModuleVersion => "0.44.0-dev";
     public override string ModuleAuthor => "gufranky and contributors";
     public override string ModuleDescription => "A modular random-skill entertainment plugin for CS2.";
 
@@ -27,6 +27,8 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private ExplosiveProjectileService _explosions = null!;
     private ExplodingBarrelService _barrels = null!;
     private FortniteService _fortnite = null!;
+    private IllusionistService _illusionist = null!;
+    private LongRangeWeaponService _longRangeWeapons = null!;
     private GrappleService _grapple = null!;
     private ThrowingKnifeService _throwingKnives = null!;
     private FireRainService _fireRain = null!;
@@ -48,6 +50,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private HolyHandGrenadeService _holyHandGrenades = null!;
     private RoundPresentationService _presentation = null!;
     private CrosshairSuppressionService _crosshairs = null!;
+    private FieldOfViewService _fieldOfView = null!;
 
     internal SkillManager RuntimeSkills => _skillManager;
     internal RoundPresentationService RuntimePresentation => _presentation;
@@ -65,6 +68,9 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _barrels.Load();
         _fortnite = new FortniteService(this, Config.Fortnite);
         _fortnite.Load();
+        _illusionist = new IllusionistService(this, Config.Illusionist);
+        _illusionist.Load();
+        _longRangeWeapons = new LongRangeWeaponService(this);
         _grapple = new GrappleService(this, Config.Grapple);
         _grapple.Load();
         _throwingKnives = new ThrowingKnifeService(this);
@@ -94,12 +100,15 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _holyHandGrenades = new HolyHandGrenadeService(this, Config.HolyHandGrenade);
         _holyHandGrenades.Load();
         _crosshairs = new CrosshairSuppressionService();
+        _fieldOfView = new FieldOfViewService();
         PluginText.Configure(_illiterate);
         _registry = SkillRegistry.CreateDefault(
             Config,
             _explosions,
             _barrels,
             _fortnite,
+            _illusionist,
+            _longRangeWeapons,
             _grapple,
             _throwingKnives,
             _fireRain,
@@ -119,7 +128,8 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _chickens,
             _glaz,
             _holyHandGrenades,
-            _crosshairs);
+            _crosshairs,
+            _fieldOfView);
         _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack);
         var performance = new PerformanceMonitor(this);
         _skillManager = new SkillManager(this, _registry, performance);
@@ -180,6 +190,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _fireRain?.Unload();
         _barrels?.Unload();
         _fortnite?.Unload();
+        _illusionist?.Unload();
         _grapple?.Unload();
         _throwingKnives?.Unload();
         _explosions?.Unload();
@@ -197,6 +208,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _chickens?.Dispose();
         _glaz?.Dispose();
         _crosshairs?.Dispose();
+        _fieldOfView?.Dispose();
         PluginText.Reset();
         Logger.LogInformation("{Plugin} unloaded (hotReload={HotReload})", ModuleName, hotReload);
     }

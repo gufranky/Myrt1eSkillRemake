@@ -1,3 +1,4 @@
+using CounterStrikeSharp.API.Modules.Utils;
 using Myrt1eSkill_Remake.Configuration;
 using Myrt1eSkill_Remake.Core;
 using Myrt1eSkill_Remake.Events;
@@ -49,15 +50,19 @@ var checks = new List<(string Name, Action Run)>
     ("ExplodingBarrel is a reusable active placement skill", CheckExplodingBarrelDescriptor),
     ("EnemySpawn is an active teleport skill", CheckEnemySpawnDescriptor),
     ("OneShot consumes attacker pre-damage callbacks", CheckOneShotRouting),
+    ("LongKnife traces lethal primary knife attacks", CheckLongKnifeDescriptor),
+    ("LongZeus traces lethal long-range taser shots", CheckLongZeusDescriptor),
     ("NoRecoil consumes tick callbacks", CheckNoRecoilRouting),
     ("Prosthesis consumes victim pre-hurt callbacks", CheckProsthesisRouting),
     ("QuickShot consumes tick callbacks", CheckQuickShotRouting),
     ("Rambo owns max-health changes", CheckRamboDescriptor),
     ("RadarHack consumes tick callbacks", CheckRadarHackRouting),
     ("ToxicSmoke consumes its complete smoke lifecycle", CheckToxicSmokeRouting),
+    ("HealingSmoke colors, tracks, replenishes, and heals", CheckHealingSmokeRouting),
     ("Pilot consumes tick callbacks", CheckPilotRouting),
     ("Meito consumes victim pre-damage callbacks", CheckMeitoRouting),
     ("BombMiner consumes grenade-thrown callbacks", CheckBombMinerRouting),
+    ("HotBomb burns the living enemy C4 carrier", CheckHotBombDescriptor),
     ("SoundMaker emits enemy screams on tick", CheckSoundMakerRouting),
     ("ThirdEye toggles a zero-cooldown camera", CheckThirdEyeDescriptor),
     ("TimeRecall records history for active rewind", CheckTimeRecallDescriptor),
@@ -74,6 +79,8 @@ var checks = new List<(string Name, Action Run)>
     ("Glaz replenishes smoke grenades", CheckGlazRouting),
     ("HolyHandGrenade replenishes enhanced HE grenades", CheckHolyHandGrenadeRouting),
     ("KillInvincibility consumes kill and pre-damage callbacks", CheckKillInvincibilityRouting),
+    ("GodMode grants a two-second active damage immunity", CheckGodModeDescriptor),
+    ("Illusionist deploys a damaging moving replica", CheckIllusionistDescriptor),
     ("ExplosiveShot consumes bullet-impact callbacks", CheckExplosiveShotRouting),
     ("Wallhack is a passive visibility skill", CheckWallhackDescriptor),
     ("Xray variants cannot be combined", CheckXrayEventConflict),
@@ -81,6 +88,7 @@ var checks = new List<(string Name, Action Run)>
     ("SuperpowerXray handles disconnect replacement", CheckSuperpowerRouting),
     ("Nightmare is a one-use active vision debuff", CheckNightmareDescriptor),
     ("Darkness uses the reference persistent black Fade", CheckDarknessDescriptor),
+    ("Magnifier applies and restores a targeted FOV override", CheckMagnifierDescriptor),
     ("HomingNades tracks non-smoke projectiles and replenishes grenades", CheckHomingNadesDescriptor),
     ("Spectator toggles a zero-cooldown enemy camera", CheckSpectatorDescriptor),
     ("BlastShot launches native HE projectiles from MP5 secondary fire", CheckBlastShotDescriptor),
@@ -90,6 +98,7 @@ var checks = new List<(string Name, Action Run)>
     ("JumpCurse mirrors holder jumps to grounded enemies", CheckJumpCurseRouting),
     ("Pusher rolls an on-hit enemy knockback chance", CheckPusherRouting),
     ("ThrowingKnife launches the holder's stealable lethal knife", CheckThrowingKnifeDescriptor),
+    ("Jumper grants exactly one extra airborne jump", CheckJumperDescriptor),
     ("Jammer is an active crosshair suppression skill", CheckJammerDescriptor),
     ("Illiterate scrambles letters and digits", CheckIlliterateScramble),
     ("Skill reveal timing matches jRandomSkills", CheckRevealTiming),
@@ -604,6 +613,40 @@ static void CheckOneShotRouting()
         "OneShot must be a passive skill.");
 }
 
+static void CheckLongKnifeDescriptor()
+{
+    var settings = new LongKnifeSettings();
+    var longKnife = new LongKnifeSkill(settings, null!);
+    Assert(longKnife is IWeaponFireSkill,
+        "LongKnife must react to primary knife weapon-fire events.");
+    Assert(longKnife.Descriptor.Kind == SkillKind.Passive
+           && longKnife.Descriptor.Rarity == SkillRarity.Common,
+        "LongKnife must preserve the reference common passive rules.");
+    Assert(settings.MaximumDistance == 4096.0f
+           && settings.Damage == 9999.0f
+           && !settings.FriendlyFire,
+        "LongKnife must use lethal long-range enemy-only defaults.");
+    Assert(longKnife.Descriptor.ConflictTags.Contains("enemy-damage-override"),
+        "LongKnife must conflict with other lethal damage overrides.");
+}
+
+static void CheckLongZeusDescriptor()
+{
+    var settings = new LongZeusSettings();
+    var longZeus = new LongZeusSkill(settings, null!);
+    Assert(longZeus is IWeaponFireSkill,
+        "LongZeus must react to taser weapon-fire events.");
+    Assert(longZeus.Descriptor.Kind == SkillKind.Passive
+           && longZeus.Descriptor.Rarity == SkillRarity.Uncommon,
+        "LongZeus must preserve the reference uncommon passive rules.");
+    Assert(settings.MaximumDistance == 4096.0f
+           && settings.Damage == 9999.0f
+           && !settings.FriendlyFire,
+        "LongZeus must use lethal long-range enemy-only defaults.");
+    Assert(longZeus.Descriptor.ConflictTags.Contains("enemy-damage-override"),
+        "LongZeus must conflict with other lethal damage overrides.");
+}
+
 static void CheckNoRecoilRouting()
 {
     var noRecoil = new NoRecoilSkill(new NoRecoilService());
@@ -656,6 +699,29 @@ static void CheckToxicSmokeRouting()
         "ToxicSmoke must track its configured smoke-grenade charges.");
 }
 
+static void CheckHealingSmokeRouting()
+{
+    var settings = new HealingSmokeSettings();
+    var healingSmoke = new HealingSmokeSkill(settings);
+    Assert(healingSmoke is ITickSkill
+           && healingSmoke is ISmokeDetonateSkill
+           && healingSmoke is ISmokeExpiredSkill
+           && healingSmoke is IGrenadeThrownSkill
+           && healingSmoke is IEntitySpawnedSkill,
+        "HealingSmoke must consume color, grenade, active-smoke, and tick routes.");
+    Assert(healingSmoke.Descriptor.Kind == SkillKind.Passive
+           && healingSmoke.Descriptor.Rarity == SkillRarity.Common
+           && healingSmoke.Descriptor.ConflictTags.Contains("smoke-behavior-control"),
+        "HealingSmoke must be a common passive smoke-controller skill.");
+    Assert(settings.HealPerTick == 1
+           && settings.TickInterval == 16
+           && settings.Radius == 180.0f
+           && settings.MaximumHealth == 150
+           && settings.Replenishments == 1
+           && settings.SoundVolume == 0.50f,
+        "HealingSmoke must preserve the requested and reference defaults.");
+}
+
 static void CheckPilotRouting()
 {
     var pilot = new PilotSkill(new PilotSettings());
@@ -681,6 +747,26 @@ static void CheckBombMinerRouting()
         "BombMiner must track its configured HE grenade charges.");
     Assert(miner.Descriptor.ConflictTags.Contains("hegrenade-behavior-control"),
         "BombMiner must declare ownership of HE grenade behavior.");
+}
+
+static void CheckHotBombDescriptor()
+{
+    var settings = new HotBombSettings();
+    var hotBomb = new HotBombSkill(settings);
+    Assert(hotBomb is ITickSkill,
+        "HotBomb must inspect and damage the C4 carrier through the tick pipeline.");
+    Assert(hotBomb.Descriptor.Kind == SkillKind.Passive
+           && hotBomb.Descriptor.Rarity == SkillRarity.Common
+           && hotBomb.Descriptor.OnlyTeam == CsTeam.CounterTerrorist
+           && hotBomb.Descriptor.MaxPerServer == 1,
+        "HotBomb must preserve the reference CT-only common assignment limits.");
+    Assert(settings.DamageIntervalSeconds == 1.0f
+           && settings.Damage == 2.0f
+           && settings.SoundVolume == 0.35f,
+        "HotBomb must preserve the reference damage timing and sound defaults.");
+    Assert(hotBomb.Descriptor.ConflictTags.Contains("c4-carrier-damage-control")
+           && hotBomb.Descriptor.ConflictTags.Contains("c4-render-control"),
+        "HotBomb must own C4 carrier damage and render rules.");
 }
 
 static void CheckSoundMakerRouting()
@@ -858,6 +944,41 @@ static void CheckKillInvincibilityRouting()
         "KillInvincibility must use the common rarity.");
 }
 
+static void CheckGodModeDescriptor()
+{
+    var settings = new GodModeSettings();
+    var godMode = new GodModeSkill(settings);
+    Assert(godMode is IPreDamageSkill && godMode is ITickSkill,
+        "GodMode must cancel damage and expire through the tick pipeline.");
+    Assert(godMode.Descriptor.Kind == SkillKind.Active
+           && godMode.Descriptor.Rarity == SkillRarity.Common
+           && godMode.Descriptor.CooldownSeconds == 30.0f,
+        "GodMode must preserve the reference active-skill rules.");
+    Assert(settings.DurationSeconds == 2.0f,
+        "GodMode must preserve the reference two-second duration.");
+    Assert(godMode.Descriptor.ConflictTags.Contains("player-render-color-control"),
+        "GodMode must declare ownership of the temporary player render color.");
+}
+
+static void CheckIllusionistDescriptor()
+{
+    var settings = new IllusionistSettings();
+    var illusionist = new IllusionistSkill(null!);
+    Assert(illusionist.Descriptor.Kind == SkillKind.Active
+           && illusionist.Descriptor.Rarity == SkillRarity.Common
+           && illusionist.Descriptor.CooldownSeconds == 30.0f
+           && illusionist.Descriptor.MaxPerServer == 2,
+        "Illusionist must preserve the reference activation rules.");
+    Assert(settings.RunDurationSeconds == 5.0f
+           && settings.CrouchDurationSeconds == 12.0f
+           && settings.RunSpeed == 224.0f
+           && settings.CrouchSpeed == 80.0f
+           && settings.EnemyDamage == 20.0f,
+        "Illusionist must preserve the reference movement, duration, and enemy-damage defaults.");
+    Assert(illusionist.Descriptor.ConflictTags.Contains("world-prop-placement"),
+        "Illusionist must participate in world-prop placement conflicts.");
+}
+
 static void CheckExplosiveShotRouting()
 {
     Assert(typeof(IBulletImpactSkill).IsAssignableFrom(typeof(ExplosiveShotSkill)),
@@ -920,6 +1041,23 @@ static void CheckDarknessDescriptor()
         "Darkness must preserve the reference Fade timings.");
     Assert(DarknessService.PackColor(0, 0, 0, 230) == unchecked((int)0xE6000000),
         "Darkness must pack the reference RGBA(0,0,0,230) overlay correctly.");
+}
+
+static void CheckMagnifierDescriptor()
+{
+    var settings = new MagnifierSettings();
+    var magnifier = new MagnifierSkill(settings, null!);
+    Assert(magnifier.Descriptor.Kind == SkillKind.Active
+           && magnifier.Descriptor.Rarity == SkillRarity.Common
+           && magnifier.Descriptor.CooldownSeconds == 0.0f,
+        "Magnifier must be a one-use common active target-selection skill.");
+    Assert(magnifier is IPlayerDeathSkill,
+        "Magnifier must restore the target FOV when that target dies.");
+    Assert(settings.CustomFov == 50,
+        "Magnifier must preserve the reference 50-degree FOV.");
+    Assert(magnifier.Descriptor.ConflictTags.Contains("targeted-vision-debuff")
+           && magnifier.Descriptor.ConflictTags.Contains("player-fov-control"),
+        "Magnifier must declare targeted vision and FOV ownership conflicts.");
 }
 
 static void CheckHomingNadesDescriptor()
@@ -1082,6 +1220,21 @@ static void CheckThrowingKnifeDescriptor()
     var deadlyGrenades = new DeadlyGrenadesEvent(new DeadlyGrenadesSettings());
     Assert(deadlyGrenades.Descriptor.BlockedSkillTags.Contains("projectile-launcher-control"),
         "DeadlyGrenades must block ThrowingKnife's projectile launcher rule.");
+}
+
+static void CheckJumperDescriptor()
+{
+    var settings = new JumperSettings();
+    var jumper = new JumperSkill(settings);
+    Assert(jumper is ITickSkill,
+        "Jumper must watch jump input on tick.");
+    Assert(jumper.Descriptor.Kind == SkillKind.Passive
+           && jumper.Descriptor.Rarity == SkillRarity.Common,
+        "Jumper must be a common passive skill.");
+    Assert(jumper.Descriptor.ConflictTags.Contains("jump-control"),
+        "Jumper must conflict with other jump controllers.");
+    Assert(settings.JumpVelocity == 300.0f && settings.SoundVolume == 1.0f,
+        "Jumper must preserve the reference jump impulse and sound volume defaults.");
 }
 
 static void CheckJammerDescriptor()

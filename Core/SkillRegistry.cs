@@ -15,6 +15,8 @@ public sealed class SkillRegistry
         ExplosiveProjectileService explosions,
         ExplodingBarrelService barrels,
         FortniteService fortnite,
+        IllusionistService illusionist,
+        LongRangeWeaponService longRangeWeapons,
         GrappleService grapple,
         ThrowingKnifeService throwingKnives,
         FireRainService fireRain,
@@ -34,7 +36,8 @@ public sealed class SkillRegistry
         ChickenService chickens,
         GlazService glaz,
         HolyHandGrenadeService holyHandGrenades,
-        CrosshairSuppressionService crosshairs)
+        CrosshairSuppressionService crosshairs,
+        FieldOfViewService fieldOfView)
     {
         var registry = new SkillRegistry();
         var antiFlash = new AntiFlashSkill(config.AntiFlash);
@@ -63,6 +66,7 @@ public sealed class SkillRegistry
         registry.Register(new JumpCurseSkill(config.JumpCurse));
         registry.Register(new PusherSkill(config.Pusher));
         registry.Register(new ThrowingKnifeSkill(config.ThrowingKnife, throwingKnives));
+        registry.Register(new JumperSkill(config.Jumper));
         registry.Register(new EnemySpawnSkill());
         registry.Register(new OneShotSkill());
         registry.Register(new NoRecoilSkill(noRecoil));
@@ -71,6 +75,7 @@ public sealed class SkillRegistry
         registry.Register(new RamboSkill(config.Rambo));
         registry.Register(new RadarHackSkill());
         registry.Register(new ToxicSmokeSkill(config.ToxicSmoke));
+        registry.Register(new HealingSmokeSkill(config.HealingSmoke));
         registry.Register(new PilotSkill(config.Pilot));
         registry.Register(new MeitoSkill());
         registry.Register(new BombMinerSkill(config.BombMiner, bombMiner));
@@ -90,6 +95,12 @@ public sealed class SkillRegistry
         registry.Register(new GlazSkill(config.Glaz, glaz));
         registry.Register(new HolyHandGrenadeSkill(config.HolyHandGrenade, holyHandGrenades));
         registry.Register(new KillInvincibilitySkill(config.KillInvincibility));
+        registry.Register(new GodModeSkill(config.GodMode));
+        registry.Register(new IllusionistSkill(illusionist));
+        registry.Register(new LongKnifeSkill(config.LongKnife, longRangeWeapons));
+        registry.Register(new LongZeusSkill(config.LongZeus, longRangeWeapons));
+        registry.Register(new HotBombSkill(config.HotBomb));
+        registry.Register(new MagnifierSkill(config.Magnifier, fieldOfView));
         registry.Register(new ExplosiveShotSkill(config.ExplosiveShot, explosions));
         registry.Register(new WallhackSkill(wallhack));
         registry.Register(new NightmareSkill(nightmare));
