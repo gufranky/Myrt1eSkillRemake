@@ -31,6 +31,7 @@ public sealed class DamageEventRouter
         }
 
         _plugin.RegisterListener<Listeners.OnEntityTakeDamagePre>(OnTakeDamage);
+        _plugin.RegisterListener<Listeners.OnEntityTakeDamagePost>(OnTakeDamagePost);
         _hooked = true;
     }
 
@@ -44,6 +45,7 @@ public sealed class DamageEventRouter
         try
         {
             _plugin.RemoveListener<Listeners.OnEntityTakeDamagePre>(OnTakeDamage);
+            _plugin.RemoveListener<Listeners.OnEntityTakeDamagePost>(OnTakeDamagePost);
         }
         catch (Exception exception)
         {
@@ -96,5 +98,13 @@ public sealed class DamageEventRouter
 
         _explosions.RegisterLethalDamageCredit(victim, pawn, damageInfo, explosion);
         return HookResult.Continue;
+    }
+
+    private static void OnTakeDamagePost(
+        CBaseEntity entity,
+        CTakeDamageInfo damageInfo,
+        CTakeDamageResult result)
+    {
+        AimbotHitGroupService.Restore(damageInfo);
     }
 }

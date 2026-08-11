@@ -44,7 +44,7 @@ public sealed class GrenadierSkill : ISkill, IGrenadeThrownSkill
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if (!string.Equals(@event.Weapon, "hegrenade", StringComparison.OrdinalIgnoreCase)
+        if (!GrenadeReplenishment.Matches(@event.Weapon, "hegrenade")
             || !context.State.TryGet<GrenadierState>(out var state)
             || !state.Active)
         {
@@ -52,7 +52,10 @@ public sealed class GrenadierSkill : ISkill, IGrenadeThrownSkill
         }
 
         var player = context.Player;
-        context.Effects.AddTimer(0.01f, () =>
+        // EventGrenadeThrown fires before the thrown weapon handle is always
+        // removed from MyWeapons. Waiting a few ticks avoids mistaking that stale
+        // handle for a grenade the player still owns.
+        context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (state.Active)
             {

@@ -79,13 +79,13 @@ public sealed class DeadlyGrenadesEvent : RoundEventBase,
 
     public void OnGrenadeThrown(in RoundEventContext context, EventGrenadeThrown @event)
     {
-        if (!_active || !string.Equals(@event.Weapon, "hegrenade", StringComparison.OrdinalIgnoreCase))
+        if (!_active || !GrenadeReplenishment.Matches(@event.Weapon, "hegrenade"))
         {
             return;
         }
 
         var player = @event.Userid;
-        context.Effects.AddTimer(0.3f, () =>
+        context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (_active)
             {

@@ -1,5 +1,4 @@
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Menu;
 using Myrt1eSkill_Remake.Core;
 
 namespace Myrt1eSkill_Remake.Skills;
@@ -81,7 +80,7 @@ public sealed class ChooseOneOfThreeSkill : ISkill, IPlayerDeathSkill
             return;
         }
 
-        var menu = new CenterHtmlMenu(
+        var menu = new WasdMenu(
             PluginText.Transform(player, "🎰 三选一：选择一个技能"),
             plugin);
         foreach (var choice in choices)
@@ -93,7 +92,7 @@ public sealed class ChooseOneOfThreeSkill : ISkill, IPlayerDeathSkill
                 (chooser, option) => TryChoose(plugin, chooser, skillId, state));
         }
 
-        MenuManager.OpenCenterHtmlMenu(plugin, player, menu);
+        plugin.WasdMenus.Open(player, menu);
     }
 
     public void OnRevoked(in SkillContext context)
@@ -104,7 +103,7 @@ public sealed class ChooseOneOfThreeSkill : ISkill, IPlayerDeathSkill
             context.Plugin.RuntimeSkills.ReleaseSkillChoiceReservations(state.ReservationOwner);
         }
 
-        MenuManager.CloseActiveMenu(context.Player);
+        context.Plugin.WasdMenus.Close(context.Player);
     }
 
     public void OnPlayerDeath(in SkillContext context, EventPlayerDeath @event)
@@ -117,7 +116,7 @@ public sealed class ChooseOneOfThreeSkill : ISkill, IPlayerDeathSkill
 
         context.Plugin.RuntimeSkills.ReleaseSkillChoiceReservations(state.ReservationOwner);
         state.OfferedSkillIds = null;
-        MenuManager.CloseActiveMenu(context.Player);
+        context.Plugin.WasdMenus.Close(context.Player);
     }
 
     private static void TryChoose(
@@ -126,7 +125,6 @@ public sealed class ChooseOneOfThreeSkill : ISkill, IPlayerDeathSkill
         string skillId,
         ChoiceState state)
     {
-        MenuManager.CloseActiveMenu(player);
         if (state.Revoked
             || state.OfferedSkillIds?.Contains(skillId) != true
             || !player.IsValid

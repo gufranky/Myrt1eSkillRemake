@@ -169,7 +169,10 @@ public sealed class ChickenService : IDisposable
 
     private static CBaseModelEntity? CreateModel(CCSPlayerPawn pawn)
     {
-        var model = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic");
+        // The chicken model is an animated NPC model rather than a regular prop model.
+        // prop_dynamic may spawn successfully but reject it client-side, leaving only
+        // the hidden player pawn. The override variant permits arbitrary models.
+        var model = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic_override");
         if (model is null)
         {
             return null;

@@ -87,8 +87,8 @@ public sealed class PyroSkill : ISkill, IPlayerHurtSkill, IGrenadeThrownSkill
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if ((!string.Equals(@event.Weapon, "molotov", StringComparison.OrdinalIgnoreCase)
-             && !string.Equals(@event.Weapon, "incgrenade", StringComparison.OrdinalIgnoreCase))
+        if ((!GrenadeReplenishment.Matches(@event.Weapon, "molotov")
+             && !GrenadeReplenishment.Matches(@event.Weapon, "incgrenade"))
             || !context.State.TryGet<PyroState>(out var state)
             || !state.Active
             || state.GrenadesRemaining <= 0)
@@ -103,7 +103,7 @@ public sealed class PyroSkill : ISkill, IPlayerHurtSkill, IGrenadeThrownSkill
         }
 
         var player = context.Player;
-        context.Effects.AddTimer(0.01f, () =>
+        context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (state.Active)
             {

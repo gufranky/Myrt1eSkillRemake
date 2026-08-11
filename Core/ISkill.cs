@@ -100,6 +100,14 @@ public interface IPlayerButtonsChangedSkill
         PlayerButtons released);
 }
 
+/// <summary>
+/// Active skills use this when a failed precondition must not consume cooldown.
+/// </summary>
+public interface IConditionalActivationSkill
+{
+    bool TryActivate(in SkillContext context);
+}
+
 public interface IWeaponReloadSkill
 {
     void OnWeaponReload(in SkillContext context, EventWeaponReload @event);

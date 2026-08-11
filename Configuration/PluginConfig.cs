@@ -42,6 +42,18 @@ public sealed class ArmoredSettings
     public float MaximumDamageMultiplier { get; set; } = 0.85f;
 }
 
+public sealed class ReactiveArmorSettings
+{
+    [JsonPropertyName("RechargeSeconds")]
+    public float RechargeSeconds { get; set; } = 15.0f;
+
+    [JsonPropertyName("InitialCharges")]
+    public int InitialCharges { get; set; } = 1;
+
+    [JsonPropertyName("MaximumCharges")]
+    public int MaximumCharges { get; set; } = -1;
+}
+
 public sealed class DwarfSettings
 {
     [JsonPropertyName("MinimumScale")]
@@ -58,6 +70,12 @@ public sealed class EnemySpinSettings
 
     [JsonPropertyName("MaximumChance")]
     public float MaximumChance { get; set; } = 0.40f;
+}
+
+public sealed class TakeOffSettings
+{
+    [JsonPropertyName("JumpVelocity")]
+    public float JumpVelocity { get; set; } = 300.0f;
 }
 
 public sealed class DashSettings
@@ -130,6 +148,21 @@ public sealed class DarknessSettings
 
     [JsonPropertyName("A")]
     public int Alpha { get; set; } = 230;
+}
+
+public sealed class DreadGazeSettings
+{
+    [JsonPropertyName("MaximumDistance")]
+    public float MaximumDistance { get; set; } = 2500.0f;
+
+    [JsonPropertyName("LookAngleDegrees")]
+    public float LookAngleDegrees { get; set; } = 8.0f;
+
+    [JsonPropertyName("Alpha")]
+    public int Alpha { get; set; } = 190;
+
+    [JsonPropertyName("RefreshTicks")]
+    public int RefreshTicks { get; set; } = 8;
 }
 
 public sealed class HomingNadesSettings
@@ -658,6 +691,12 @@ public sealed class HealingChickenSettings
 
     [JsonPropertyName("MaximumHealth")]
     public int MaximumHealth { get; set; }
+
+    [JsonPropertyName("SpeedMultiplier")]
+    public float SpeedMultiplier { get; set; } = 2.5f;
+
+    [JsonPropertyName("MaximumExtraStep")]
+    public float MaximumExtraStep { get; set; } = 8.0f;
 }
 
 public sealed class FindThemSettings
@@ -670,6 +709,12 @@ public sealed class FindThemSettings
 
     [JsonPropertyName("SpawnRadius")]
     public float SpawnRadius { get; set; } = 48.0f;
+
+    [JsonPropertyName("SpeedMultiplier")]
+    public float SpeedMultiplier { get; set; } = 2.75f;
+
+    [JsonPropertyName("MaximumExtraStep")]
+    public float MaximumExtraStep { get; set; } = 10.0f;
 }
 
 public sealed class KamikazeChickenSettings
@@ -684,10 +729,13 @@ public sealed class KamikazeChickenSettings
     public float ModelScale { get; set; } = 1.35f;
 
     [JsonPropertyName("SpeedMultiplier")]
-    public float SpeedMultiplier { get; set; } = 1.20f;
+    public float SpeedMultiplier { get; set; } = 3.0f;
 
     [JsonPropertyName("MaximumSpeed")]
-    public float MaximumSpeed { get; set; } = 180.0f;
+    public float MaximumSpeed { get; set; } = 360.0f;
+
+    [JsonPropertyName("MaximumExtraStep")]
+    public float MaximumExtraStep { get; set; } = 12.0f;
 
     [JsonPropertyName("DetonationDistance")]
     public float DetonationDistance { get; set; } = 120.0f;
@@ -941,11 +989,11 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("RarityWeights")]
     public Dictionary<string, int> RarityWeights { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Common"] = 70,
-        ["Uncommon"] = 14,
-        ["Rare"] = 10,
-        ["Epic"] = 5,
-        ["Legendary"] = 1
+        ["Common"] = 50,
+        ["Uncommon"] = 20,
+        ["Rare"] = 16,
+        ["Epic"] = 10,
+        ["Legendary"] = 4
     };
 
     [JsonPropertyName("Skills")]
@@ -1029,6 +1077,20 @@ public sealed class PluginConfig : BasePluginConfig
             MaxPerServer = 4
         },
         ["Armored"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["ReactiveArmor"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["TakeOff"] = new()
         {
             Enabled = true,
             Weight = 10,
@@ -1127,6 +1189,41 @@ public sealed class PluginConfig : BasePluginConfig
             MaxPerServer = 2
         },
         ["EnemySpawn"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["HurtTeleport"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = -1
+        },
+        ["RandomTeleport"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = -1
+        },
+        ["WeaponSwap"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["DreadGaze"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = -1
+        },
+        ["Aimbot"] = new()
         {
             Enabled = true,
             Weight = 10,
@@ -1586,6 +1683,9 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("Armored")]
     public ArmoredSettings Armored { get; set; } = new();
 
+    [JsonPropertyName("ReactiveArmor")]
+    public ReactiveArmorSettings ReactiveArmor { get; set; } = new();
+
     [JsonPropertyName("BladeMaster")]
     public BladeMasterSettings BladeMaster { get; set; } = new();
 
@@ -1594,6 +1694,9 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("EnemySpin")]
     public EnemySpinSettings EnemySpin { get; set; } = new();
+
+    [JsonPropertyName("TakeOff")]
+    public TakeOffSettings TakeOff { get; set; } = new();
 
     [JsonPropertyName("Dash")]
     public DashSettings Dash { get; set; } = new();
@@ -1754,6 +1857,9 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("Darkness")]
     public DarknessSettings Darkness { get; set; } = new();
 
+    [JsonPropertyName("DreadGaze")]
+    public DreadGazeSettings DreadGaze { get; set; } = new();
+
     [JsonPropertyName("HomingNades")]
     public HomingNadesSettings HomingNades { get; set; } = new();
 
@@ -1821,6 +1927,7 @@ public sealed class PluginConfig : BasePluginConfig
         ["Blitzkrieg"] = new() { Enabled = true, Weight = 10 },
         ["SlowMotion"] = new() { Enabled = true, Weight = 10 },
         ["SwapOnHit"] = new() { Enabled = true, Weight = 10 },
+        ["HurtTeleport"] = new() { Enabled = true, Weight = 10 },
         ["DecoyTeleport"] = new() { Enabled = true, Weight = 10 },
         ["ChickenMode"] = new() { Enabled = true, Weight = 10 },
         ["Bankruptcy"] = new() { Enabled = true, Weight = 10 },
@@ -1835,6 +1942,7 @@ public sealed class PluginConfig : BasePluginConfig
         ["SilentWorld"] = new() { Enabled = true, Weight = 10 },
         ["AnywhereBombPlant"] = new() { Enabled = true, Weight = 10 },
         ["KillerSatellite"] = new() { Enabled = true, Weight = 10 },
+        ["ExplosionsAreArt"] = new() { Enabled = true, Weight = 10 },
         ["SkillMaster"] = new() { Enabled = true, Weight = 10 },
         ["RainyDay"] = new() { Enabled = true, Weight = 10 },
         ["SuperpowerXray"] = new() { Enabled = true, Weight = 10 },

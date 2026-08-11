@@ -12,6 +12,7 @@ public sealed class FindThemService : IDisposable
     {
         public required uint ChickenIndex { get; init; }
         public required uint TargetControllerIndex { get; init; }
+        public ChickenMovementBoost.State Movement { get; } = new();
     }
 
     private readonly FindThemSettings _settings;
@@ -115,10 +116,12 @@ public sealed class FindThemService : IDisposable
             var chicken = Utilities.GetEntityFromIndex<CChicken>((int)scout.ChickenIndex);
             var target = Utilities.GetPlayerFromIndex((int)scout.TargetControllerIndex);
             var targetPawn = target?.PlayerPawn.Value;
+            var targetOrigin = targetPawn?.AbsOrigin;
             if (chicken is not { IsValid: true }
                 || chicken.Health <= 0
                 || target is not { IsValid: true, PawnIsAlive: true }
-                || targetPawn is not { IsValid: true })
+                || targetPawn is not { IsValid: true }
+                || targetOrigin is null)
             {
                 if (chicken is { IsValid: true })
                 {
@@ -133,6 +136,13 @@ public sealed class FindThemService : IDisposable
             {
                 chicken.Leader.Raw = target.PlayerPawn.Raw;
             }
+
+            ChickenMovementBoost.Update(
+                chicken,
+                targetOrigin,
+                scout.Movement,
+                _settings.SpeedMultiplier,
+                _settings.MaximumExtraStep);
         }
 
         if (scouts.Count == 0)

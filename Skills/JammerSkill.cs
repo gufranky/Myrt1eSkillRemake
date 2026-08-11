@@ -1,6 +1,5 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 using Myrt1eSkill_Remake.Core;
 
@@ -71,7 +70,7 @@ public sealed class JammerSkill : ISkill, IPlayerDeathSkill
             return;
         }
 
-        var menu = new CenterHtmlMenu(
+        var menu = new WasdMenu(
             PluginText.Transform(caster, "📡 干扰器：选择要禁用准星的敌人"),
             context.Plugin);
         foreach (var enemy in enemies)
@@ -82,7 +81,7 @@ public sealed class JammerSkill : ISkill, IPlayerDeathSkill
                 (player, option) => TrySelectTarget(player, enemyIndex, state));
         }
 
-        MenuManager.OpenCenterHtmlMenu(context.Plugin, caster, menu);
+        context.Plugin.WasdMenus.Open(caster, menu);
     }
 
     public void OnRevoked(in SkillContext context)
@@ -93,7 +92,7 @@ public sealed class JammerSkill : ISkill, IPlayerDeathSkill
         }
 
         state.Revoked = true;
-        MenuManager.CloseActiveMenu(context.Player);
+        context.Plugin.WasdMenus.Close(context.Player);
         ReleaseTarget(state, notifyTarget: true);
     }
 
@@ -113,7 +112,6 @@ public sealed class JammerSkill : ISkill, IPlayerDeathSkill
         uint targetIndex,
         JammerState state)
     {
-        MenuManager.CloseActiveMenu(caster);
         if (state.Revoked || state.Used || !caster.IsValid || !caster.PawnIsAlive)
         {
             return;

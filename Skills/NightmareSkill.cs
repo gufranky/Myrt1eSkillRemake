@@ -1,6 +1,5 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 using Myrt1eSkill_Remake.Core;
 
@@ -68,7 +67,7 @@ public sealed class NightmareSkill : ISkill
             return;
         }
 
-        var menu = new CenterHtmlMenu(
+        var menu = new WasdMenu(
             PluginText.Transform(context.Player, "梦魇：选择一名敌人"),
             context.Plugin);
         foreach (var enemy in enemies)
@@ -78,7 +77,7 @@ public sealed class NightmareSkill : ISkill
                 TrySelectTarget(caster, enemyIndex, state));
         }
 
-        MenuManager.OpenCenterHtmlMenu(context.Plugin, context.Player, menu);
+        context.Plugin.WasdMenus.Open(context.Player, menu);
     }
 
     public void OnRevoked(in SkillContext context)
@@ -88,13 +87,12 @@ public sealed class NightmareSkill : ISkill
             state.Revoked = true;
         }
 
-        MenuManager.CloseActiveMenu(context.Player);
+        context.Plugin.WasdMenus.Close(context.Player);
         _nightmare.RemoveCaster(context.Player);
     }
 
     private void TrySelectTarget(CCSPlayerController caster, uint targetIndex, NightmareState state)
     {
-        MenuManager.CloseActiveMenu(caster);
         if (state.Revoked || state.Used || !caster.IsValid || !caster.PawnIsAlive)
         {
             return;

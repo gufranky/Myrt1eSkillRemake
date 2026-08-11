@@ -16,6 +16,7 @@ public sealed class HealingChickenService : IDisposable
     {
         public required uint EntityIndex { get; init; }
         public float NextHealAt { get; set; }
+        public ChickenMovementBoost.State Movement { get; } = new();
     }
 
     private sealed class OwnerState
@@ -153,6 +154,13 @@ public sealed class HealingChickenService : IDisposable
             {
                 chicken.Leader.Raw = owner.PlayerPawn.Raw;
             }
+
+            ChickenMovementBoost.Update(
+                chicken,
+                ownerOrigin,
+                chickenState.Movement,
+                _settings.SpeedMultiplier,
+                _settings.MaximumExtraStep);
 
             if (now < chickenState.NextHealAt)
             {

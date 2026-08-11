@@ -73,10 +73,8 @@ public sealed class InfiniteAmmoSkill : ISkill,
         }
 
         var player = context.Player;
-        var weaponName = @event.Weapon.StartsWith("weapon_", StringComparison.OrdinalIgnoreCase)
-            ? @event.Weapon
-            : $"weapon_{@event.Weapon}";
-        context.Effects.AddTimer(0.01f, () =>
+        var weaponName = GrenadeReplenishment.ToDesignerName(@event.Weapon);
+        context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (state.Active && player is { IsValid: true, PawnIsAlive: true })
             {

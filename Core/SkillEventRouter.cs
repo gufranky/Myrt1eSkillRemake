@@ -219,6 +219,7 @@ public sealed class SkillEventRouter
 
     public HookResult OnPlayerDisconnect(EventPlayerDisconnect @event, GameEventInfo info)
     {
+        _plugin.WasdMenus.Close(@event.Userid);
         _events.Dispatch<IRoundEventPlayerDisconnect>(
             "EventRound.PlayerDisconnect",
             (handler, context) => handler.OnPlayerDisconnect(context, @event));
@@ -237,6 +238,7 @@ public sealed class SkillEventRouter
     public void OnTick()
     {
         _presentation.OnTick();
+        _plugin.WasdMenus.OnTick();
         _events.Dispatch<IRoundEventTick>(
             "Tick.ActiveEvents",
             static (handler, context) => handler.OnTick(context));
@@ -292,6 +294,11 @@ public sealed class SkillEventRouter
         PlayerButtons pressed,
         PlayerButtons released)
     {
+        if (_plugin.WasdMenus.HandleButtons(player, pressed))
+        {
+            return;
+        }
+
         _skills.DispatchForPlayer<IPlayerButtonsChangedSkill>(
             player,
             "Input.PlayerButtonsChanged",
@@ -299,7 +306,23 @@ public sealed class SkillEventRouter
 
         if (_plugin.Config.ActivateWithUseKey && pressed.HasFlag(PlayerButtons.Use))
         {
-            _skills.TryActivate(player);
+            var activeSkills = _skills.GetActiveSkills(player);
+            if (activeSkills.Count <= 1)
+            {
+                _skills.TryActivate(player);
+                return;
+            }
+
+            var menu = new WasdMenu(PluginText.Transform(player, "选择要发动的技能"), _plugin);
+            foreach (var skill in activeSkills)
+            {
+                var skillId = skill.Id;
+                menu.AddMenuOption(
+                    PluginText.Transform(player, $"{skill.DisplayName}：{skill.Description}"),
+                    (menuPlayer, option) => _skills.TryActivate(menuPlayer, skillId));
+            }
+
+            _plugin.WasdMenus.Open(player, menu);
         }
     }
 }

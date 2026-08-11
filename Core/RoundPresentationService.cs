@@ -11,6 +11,8 @@ namespace Myrt1eSkill_Remake.Core;
 /// </summary>
 public sealed class RoundPresentationService
 {
+    public static readonly TimeSpan HudUpdateInterval = TimeSpan.FromMilliseconds(100);
+
     private sealed record StatusLine(string Text, string Color);
 
     private readonly Myrt1eSkillRemakePlugin _plugin;
@@ -18,6 +20,7 @@ public sealed class RoundPresentationService
     private RoundPlan? _plan;
     private DateTime _hudExpiresAt;
     private DateTime _descriptionExpiresAt;
+    private DateTime _nextHudUpdateAt;
     private long _generation;
     private readonly Dictionary<uint, Dictionary<string, StatusLine>> _statusLines = new();
 
@@ -34,6 +37,7 @@ public sealed class RoundPresentationService
         var now = DateTime.UtcNow;
         _hudExpiresAt = Expiry(now, _plugin.Config.SkillHudDuration);
         _descriptionExpiresAt = Expiry(now, _plugin.Config.SkillDescriptionDuration);
+        _nextHudUpdateAt = DateTime.MinValue;
 
         var players = EligiblePlayers().ToArray();
         foreach (var player in players)
@@ -59,6 +63,7 @@ public sealed class RoundPresentationService
         _plan = null;
         _hudExpiresAt = DateTime.MinValue;
         _descriptionExpiresAt = DateTime.MinValue;
+        _nextHudUpdateAt = DateTime.MinValue;
         _statusLines.Clear();
     }
 
@@ -79,7 +84,14 @@ public sealed class RoundPresentationService
             _statusLines[player.Index] = lines;
         }
 
-        lines[sourceId] = new StatusLine(text, NormalizeColor(color));
+        var next = new StatusLine(text, NormalizeColor(color));
+        if (lines.TryGetValue(sourceId, out var current) && current == next)
+        {
+            return;
+        }
+
+        lines[sourceId] = next;
+        _nextHudUpdateAt = DateTime.MinValue;
     }
 
     public void RemoveStatusLine(CCSPlayerController player, string sourceId)
@@ -90,6 +102,7 @@ public sealed class RoundPresentationService
         }
 
         lines.Remove(sourceId);
+        _nextHudUpdateAt = DateTime.MinValue;
         if (lines.Count == 0)
         {
             _statusLines.Remove(player.Index);
@@ -105,9 +118,24 @@ public sealed class RoundPresentationService
             return;
         }
 
+        // Center HTML only needs a small refresh cadence to remain visible. Sending
+        // it every server tick floods each client's reliable net channel and can
+        // cause snapshot backlogs, timeouts, or a client-side hang.
+        if (now < _nextHudUpdateAt)
+        {
+            return;
+        }
+
+        _nextHudUpdateAt = now + HudUpdateInterval;
+
         var showDescriptions = now <= _descriptionExpiresAt;
         foreach (var player in EligiblePlayers())
         {
+            if (_plugin.WasdMenus.HasMenu(player))
+            {
+                continue;
+            }
+
             player.PrintToCenterHtml(BuildHud(player, plan, showDescriptions));
         }
     }

@@ -44,7 +44,7 @@ public sealed class HolyHandGrenadeSkill : ISkill, IGrenadeThrownSkill
         context.State.Set(state);
         context.Effects.RegisterCleanup(() => state.Active = false);
         _service.Acquire(context.Player, context.Effects);
-        GiveGrenade(context.Player);
+        EnsureGrenade(context.Player);
     }
 
     public void OnActivated(in SkillContext context)
@@ -57,7 +57,7 @@ public sealed class HolyHandGrenadeSkill : ISkill, IGrenadeThrownSkill
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if (!string.Equals(@event.Weapon, "hegrenade", StringComparison.OrdinalIgnoreCase)
+        if (!GrenadeReplenishment.Matches(@event.Weapon, "hegrenade")
             || !context.State.TryGet<HolyGrenadeState>(out var state)
             || !state.Active
             || state.ReplenishmentsRemaining <= 0)
@@ -68,17 +68,16 @@ public sealed class HolyHandGrenadeSkill : ISkill, IGrenadeThrownSkill
         state.ReplenishmentsRemaining--;
         var player = context.Player;
         var effects = context.Effects;
-        effects.AddTimer(0.01f, () =>
+        effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (state.Active)
             {
-                GiveGrenade(player);
-                PluginText.Chat(player, "[圣手榴弹] HE 手雷已补充（1/1）");
+                ReplenishGrenade(player);
             }
         });
     }
 
-    private static void GiveGrenade(CCSPlayerController player)
+    private static void EnsureGrenade(CCSPlayerController player)
     {
         if (player is not { IsValid: true, PawnIsAlive: true })
         {
@@ -91,5 +90,19 @@ public sealed class HolyHandGrenadeSkill : ISkill, IGrenadeThrownSkill
         {
             player.GiveNamedItem("weapon_hegrenade");
         }
+    }
+
+    private static void ReplenishGrenade(CCSPlayerController player)
+    {
+        if (player is not { IsValid: true, PawnIsAlive: true })
+        {
+            return;
+        }
+
+        // A thrown HE can leave an empty weapon handle in MyWeapons. This is a
+        // confirmed, counted replenishment, so checking that handle would skip
+        // the replacement even though the player has no usable grenade.
+        player.GiveNamedItem("weapon_hegrenade");
+        PluginText.Chat(player, "[圣手榴弹] HE 手雷已补充（1/1）");
     }
 }

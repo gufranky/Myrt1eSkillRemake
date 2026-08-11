@@ -85,7 +85,7 @@ public sealed class MagneticDecoySkill : ISkill,
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if (!string.Equals(@event.Weapon, "decoy", StringComparison.OrdinalIgnoreCase)
+        if (!GrenadeReplenishment.Matches(@event.Weapon, "decoy")
             || !context.State.TryGet<MagneticDecoyState>(out var state)
             || !state.Active
             || state.GrenadesRemaining <= 0)
@@ -100,7 +100,7 @@ public sealed class MagneticDecoySkill : ISkill,
         }
 
         var player = context.Player;
-        context.Effects.AddTimer(0.01f, () =>
+        context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (state.Active)
             {

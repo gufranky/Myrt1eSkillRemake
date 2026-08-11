@@ -4,7 +4,9 @@ using CounterStrikeSharp.API.Core;
 namespace Myrt1eSkill_Remake.Core;
 
 /// <summary>
-/// Rewrites only the four movement button bits during player pre-think.
+/// Rewrites the four movement button bits and both movement-axis pairs during
+/// player pre-think. Modern CS2 movement consumes the float axes as well as the
+/// legacy button mask, so changing only CInButtonState has no visible effect.
 /// Attack, jump, duck, use and view input are deliberately left untouched.
 /// </summary>
 public sealed class MindHackService
@@ -45,7 +47,7 @@ public sealed class MindHackService
 
         foreach (var targetIndex in _targets.Keys.ToArray())
         {
-            RestoreCurrentButtons(targetIndex);
+            RestoreCurrentMovement(targetIndex);
         }
 
         _targets.Clear();
@@ -87,7 +89,7 @@ public sealed class MindHackService
         _ownerTargets[owner] = target.Index;
         if (firstOwner)
         {
-            RewriteCurrentButtons(target);
+            RewriteCurrentMovement(target);
         }
         return true;
     }
@@ -104,7 +106,7 @@ public sealed class MindHackService
         if (state.Owners.Count == 0)
         {
             _targets.Remove(targetIndex);
-            RestoreCurrentButtons(targetIndex);
+            RestoreCurrentMovement(targetIndex);
         }
 
         return true;
@@ -147,6 +149,9 @@ public sealed class MindHackService
         return reversed;
     }
 
+    public static float ReverseMovementAxis(float axis) =>
+        float.IsFinite(axis) ? -axis : 0.0f;
+
     private void OnPlayerButtonsChanged(
         CCSPlayerController player,
         PlayerButtons pressed,
@@ -157,27 +162,33 @@ public sealed class MindHackService
             return;
         }
 
-        RewriteCurrentButtons(player);
+        RewriteCurrentMovement(player);
     }
 
-    private static void RewriteCurrentButtons(CCSPlayerController player)
+    private static void RewriteCurrentMovement(CCSPlayerController player)
     {
-        var buttonState = player.PlayerPawn.Value?.MovementServices?.Buttons;
-        if (buttonState is null)
+        var movement = player.PlayerPawn.Value?.MovementServices;
+        if (movement is null)
         {
             return;
         }
 
+        var buttonState = movement.Buttons;
         var current = (PlayerButtons)buttonState.ButtonStates[0];
         buttonState.ButtonStates[0] = (ulong)ReverseMovementButtons(current);
+
+        movement.CmdForwardMove = ReverseMovementAxis(movement.CmdForwardMove);
+        movement.CmdLeftMove = ReverseMovementAxis(movement.CmdLeftMove);
+        movement.ForwardMove = ReverseMovementAxis(movement.ForwardMove);
+        movement.LeftMove = ReverseMovementAxis(movement.LeftMove);
     }
 
-    private static void RestoreCurrentButtons(uint targetIndex)
+    private static void RestoreCurrentMovement(uint targetIndex)
     {
         var target = Utilities.GetPlayerFromIndex((int)targetIndex);
         if (target is { IsValid: true })
         {
-            RewriteCurrentButtons(target);
+            RewriteCurrentMovement(target);
         }
     }
 }

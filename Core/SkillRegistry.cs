@@ -46,7 +46,8 @@ public sealed class SkillRegistry
         FieldOfViewService fieldOfView,
         TrackerTrailService tracker,
         MindHackService mindHack,
-        NinjaVisibilityService ninjaVisibility)
+        NinjaVisibilityService ninjaVisibility,
+        NavMeshService navMesh)
     {
         var registry = new SkillRegistry();
         var antiFlash = new AntiFlashSkill(config.AntiFlash);
@@ -64,10 +65,12 @@ public sealed class SkillRegistry
         registry.Register(new VampiricRoundsSkill());
         registry.Register(new FieldMedicSkill());
         registry.Register(new ArmoredSkill(config.Armored));
+        registry.Register(new ReactiveArmorSkill(config.ReactiveArmor));
         registry.Register(new BladeMasterSkill(config.BladeMaster));
         registry.Register(new IronHeadSkill());
         registry.Register(new DwarfSkill(config.Dwarf));
         registry.Register(new EnemySpinSkill(config.EnemySpin, playerView));
+        registry.Register(new TakeOffSkill(config.TakeOff));
         registry.Register(new FireRainSkill(fireRain));
         registry.Register(new DashSkill(config.Dash));
         registry.Register(new FriendlyFireSkill(config.FriendlyFire, friendlyFire));
@@ -82,6 +85,11 @@ public sealed class SkillRegistry
         registry.Register(new ThrowingKnifeSkill(config.ThrowingKnife, throwingKnives));
         registry.Register(new JumperSkill(config.Jumper));
         registry.Register(new EnemySpawnSkill());
+        registry.Register(new HurtTeleportSkill(navMesh));
+        registry.Register(new RandomTeleportSkill(navMesh));
+        registry.Register(new WeaponSwapSkill());
+        registry.Register(new DreadGazeSkill(config.DreadGaze));
+        registry.Register(new AimbotSkill());
         registry.Register(new OneShotSkill());
         registry.Register(new NoRecoilSkill(noRecoil));
         registry.Register(new ProsthesisSkill());

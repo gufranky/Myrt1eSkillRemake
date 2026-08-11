@@ -10,11 +10,13 @@ public sealed class ToxicSmokeSkill : ISkill,
     ITickSkill,
     ISmokeDetonateSkill,
     ISmokeExpiredSkill,
-    IGrenadeThrownSkill
+    IGrenadeThrownSkill,
+    IEntitySpawnedSkill
 {
     private sealed class ToxicSmokeState
     {
         public required int GrenadesRemaining { get; set; }
+        public bool Active { get; set; } = true;
         public List<Vector> Smokes { get; } = new();
     }
 
@@ -41,10 +43,12 @@ public sealed class ToxicSmokeSkill : ISkill,
 
     public void OnGranted(in SkillContext context)
     {
-        context.State.Set(new ToxicSmokeState
+        var state = new ToxicSmokeState
         {
             GrenadesRemaining = Math.Clamp(_settings.GrenadeLimit, 1, 10)
-        });
+        };
+        context.State.Set(state);
+        context.Effects.RegisterCleanup(() => state.Active = false);
         GiveSmoke(context.Player);
     }
 
@@ -54,6 +58,29 @@ public sealed class ToxicSmokeSkill : ISkill,
 
     public void OnRevoked(in SkillContext context)
     {
+    }
+
+    public void OnEntitySpawned(in SkillContext context, CEntityInstance entity)
+    {
+        if (!context.State.TryGet<ToxicSmokeState>(out var state)
+            || !state.Active
+            || !string.Equals(entity.DesignerName, "smokegrenade_projectile", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var smoke = entity.As<CSmokeGrenadeProjectile>();
+        if (smoke is not { IsValid: true })
+        {
+            return;
+        }
+
+        // Preserve jRandomSkills' toxic-smoke magenta and explicitly notify
+        // clients because m_vSmokeColor is a networked vector.
+        smoke.SmokeColor.X = 255.0f;
+        smoke.SmokeColor.Y = 0.0f;
+        smoke.SmokeColor.Z = 255.0f;
+        Utilities.SetStateChanged(smoke, "CSmokeGrenadeProjectile", "m_vSmokeColor");
     }
 
     public void OnSmokeDetonate(in SkillContext context, EventSmokegrenadeDetonate @event)
@@ -77,8 +104,9 @@ public sealed class ToxicSmokeSkill : ISkill,
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if (!string.Equals(@event.Weapon, "smokegrenade", StringComparison.OrdinalIgnoreCase)
+        if (!GrenadeReplenishment.Matches(@event.Weapon, "smokegrenade")
             || !context.State.TryGet<ToxicSmokeState>(out var state)
+            || !state.Active
             || state.GrenadesRemaining <= 0)
         {
             return;
@@ -87,7 +115,14 @@ public sealed class ToxicSmokeSkill : ISkill,
         state.GrenadesRemaining--;
         if (state.GrenadesRemaining > 0)
         {
-            GiveSmoke(context.Player);
+            var player = context.Player;
+            context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
+            {
+                if (state.Active)
+                {
+                    GiveSmoke(player);
+                }
+            });
         }
     }
 

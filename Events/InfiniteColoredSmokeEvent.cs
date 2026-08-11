@@ -42,13 +42,13 @@ public sealed class InfiniteColoredSmokeEvent : RoundEventBase,
 
     public void OnGrenadeThrown(in RoundEventContext context, EventGrenadeThrown @event)
     {
-        if (!_active || !string.Equals(@event.Weapon, "smokegrenade", StringComparison.OrdinalIgnoreCase))
+        if (!_active || !GrenadeReplenishment.Matches(@event.Weapon, "smokegrenade"))
         {
             return;
         }
 
         var player = @event.Userid;
-        context.Effects.AddTimer(0.01f, () =>
+        context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (_active)
             {
@@ -85,7 +85,7 @@ public sealed class InfiniteColoredSmokeEvent : RoundEventBase,
         var red = Random.Shared.Next(0, 256);
         var green = Random.Shared.Next(0, 256);
         var blue = Random.Shared.Next(0, 256);
-        context.Effects.AddTimer(0.01f, () =>
+        Server.NextFrame(() =>
         {
             if (!_active || !smoke.IsValid)
             {
@@ -95,6 +95,7 @@ public sealed class InfiniteColoredSmokeEvent : RoundEventBase,
             smoke.SmokeColor.X = red;
             smoke.SmokeColor.Y = green;
             smoke.SmokeColor.Z = blue;
+            Utilities.SetStateChanged(smoke, "CSmokeGrenadeProjectile", "m_vSmokeColor");
         });
     }
 

@@ -5,6 +5,7 @@ namespace Myrt1eSkill_Remake.Events;
 public sealed class SkillMasterEvent : RoundEventBase
 {
     public const int ChampionSkillCount = 5;
+    public const int ChampionMaxActiveSkillCount = 1;
 
     public override EventDescriptor Descriptor { get; } = new()
     {
@@ -20,7 +21,7 @@ public sealed class SkillMasterEvent : RoundEventBase
     };
 
     public override void Contribute(RoundPlanBuilder builder) =>
-        builder.AssignOneRandomPlayerPerTeam(ChampionSkillCount);
+        builder.AssignOneRandomPlayerPerTeam(ChampionSkillCount, ChampionMaxActiveSkillCount);
 
     public override void OnApplied(in RoundEventContext context) =>
         PrintToChatAll("[娱乐事件] ⭐ 我是达人：双方各有一名随机玩家获得 5 个技能，其他人没有技能！");

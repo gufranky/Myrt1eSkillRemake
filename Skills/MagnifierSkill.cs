@@ -1,6 +1,5 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 using Myrt1eSkill_Remake.Configuration;
 using Myrt1eSkill_Remake.Core;
@@ -76,7 +75,7 @@ public sealed class MagnifierSkill : ISkill, IPlayerDeathSkill
             return;
         }
 
-        var menu = new CenterHtmlMenu(
+        var menu = new WasdMenu(
             PluginText.Transform(caster, "🔍 放大镜：选择要缩小视野的敌人"),
             context.Plugin);
         foreach (var enemy in enemies)
@@ -87,7 +86,7 @@ public sealed class MagnifierSkill : ISkill, IPlayerDeathSkill
                 (player, option) => TrySelectTarget(player, enemyIndex, state));
         }
 
-        MenuManager.OpenCenterHtmlMenu(context.Plugin, caster, menu);
+        context.Plugin.WasdMenus.Open(caster, menu);
     }
 
     public void OnRevoked(in SkillContext context)
@@ -98,7 +97,7 @@ public sealed class MagnifierSkill : ISkill, IPlayerDeathSkill
         }
 
         state.Revoked = true;
-        MenuManager.CloseActiveMenu(context.Player);
+        context.Plugin.WasdMenus.Close(context.Player);
         ReleaseTarget(state, true);
     }
 
@@ -113,7 +112,6 @@ public sealed class MagnifierSkill : ISkill, IPlayerDeathSkill
 
     private void TrySelectTarget(CCSPlayerController caster, uint targetIndex, MagnifierState state)
     {
-        MenuManager.CloseActiveMenu(caster);
         if (state.Revoked || state.Used || !caster.IsValid || !caster.PawnIsAlive)
         {
             return;

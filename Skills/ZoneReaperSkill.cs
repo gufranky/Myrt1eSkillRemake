@@ -1,6 +1,5 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 using Myrt1eSkill_Remake.Core;
 
@@ -58,12 +57,12 @@ public sealed class ZoneReaperSkill : ISkill, ITickSkill
             return;
         }
 
-        var menu = new CenterHtmlMenu(
+        var menu = new WasdMenu(
             PluginText.Transform(context.Player, "🚫 禁区收割者：选择要关闭的包点"),
             context.Plugin);
         AddSiteOption(menu, context.Player, state, "A", bombTargets[0].Index);
         AddSiteOption(menu, context.Player, state, "B", bombTargets[1].Index);
-        MenuManager.OpenCenterHtmlMenu(context.Plugin, context.Player, menu);
+        context.Plugin.WasdMenus.Open(context.Player, menu);
     }
 
     public void OnRevoked(in SkillContext context)
@@ -74,7 +73,7 @@ public sealed class ZoneReaperSkill : ISkill, ITickSkill
         }
 
         state.Revoked = true;
-        MenuManager.CloseActiveMenu(context.Player);
+        context.Plugin.WasdMenus.Close(context.Player);
         RestoreBombsite(state);
     }
 
@@ -112,7 +111,7 @@ public sealed class ZoneReaperSkill : ISkill, ITickSkill
     }
 
     private static void AddSiteOption(
-        CenterHtmlMenu menu,
+        WasdMenu menu,
         CCSPlayerController owner,
         ZoneReaperState state,
         string site,
@@ -129,7 +128,6 @@ public sealed class ZoneReaperSkill : ISkill, ITickSkill
         string site,
         uint targetIndex)
     {
-        MenuManager.CloseActiveMenu(owner);
         if (state.Revoked
             || state.Used
             || !owner.IsValid

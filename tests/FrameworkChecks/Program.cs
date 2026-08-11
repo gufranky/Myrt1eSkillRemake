@@ -13,6 +13,7 @@ var checks = new List<(string Name, Action Run)>
     ("NoSkill and ChooseCarnival are incompatible", CheckEventConflict),
     ("ChooseCarnival produces ReplaceAll plan", CheckReplaceAll),
     ("Round plan clamps slots and active skill count", CheckPlanLimits),
+    ("Default rarity weights favor high-rarity skills more often", CheckRarityWeights),
     ("SpeedBoost is an exclusive 50-percent movement skill", CheckSpeedBoostDescriptor),
     ("DeathNote is a one-use active mutual-suicide skill", CheckDeathNoteDescriptor),
     ("ZoneReaper disables one bomb site for Counter-Terrorists", CheckZoneReaperDescriptor),
@@ -34,9 +35,12 @@ var checks = new List<(string Name, Action Run)>
     ("SilentWorld suppresses all sound recipients and blocks redundant skills", CheckSilentWorldDescriptor),
     ("AnywhereBombPlant forces bomb-zone state and a sixty-second timer", CheckAnywhereBombPlantDescriptor),
     ("KillerSatellite replaces all assignments with KillerFlash and Meito", CheckKillerSatellitePlan),
+    ("ExplosionsAreArt gives every player only ExplosiveShot", CheckExplosionsAreArtPlan),
     ("SkillMaster assigns five skills to one random player per team", CheckSkillMasterPlan),
+    ("WASD menus wrap W/S navigation across all options", CheckWasdMenuNavigation),
     ("Time-scale events cannot be combined", CheckTimeScaleConflict),
     ("SwapOnHit consumes hurt and tick callbacks", CheckSwapOnHitRouting),
+    ("HurtTeleport consumes damage through the NavMesh-safe hurt route", CheckHurtTeleportRouting),
     ("DecoyTeleport consumes decoy and spawn callbacks", CheckDecoyTeleportRouting),
     ("ChickenMode consumes complete visual lifecycle callbacks", CheckChickenModeRouting),
     ("ChickenMode blocks movement speed skills", CheckChickenModeCompatibility),
@@ -51,10 +55,12 @@ var checks = new List<(string Name, Action Run)>
     ("RainyDay consumes visibility lifecycle callbacks", CheckRainyDayRouting),
     ("Skill state bags isolate assignment state", CheckSkillStateIsolation),
     ("Armored consumes the pre-damage pipeline", CheckArmoredRouting),
+    ("ReactiveArmor stacks periodic full-hit absorption charges", CheckReactiveArmorDescriptor),
     ("BladeMaster conditionally deflects bullet damage while holding a knife", CheckBladeMasterDescriptor),
     ("IronHead consumes victim pre-hurt callbacks", CheckIronHeadRouting),
     ("Dwarf controls player scale", CheckDwarfDescriptor),
     ("EnemySpin consumes player-hurt callbacks", CheckEnemySpinRouting),
+    ("TakeOff launches every enemy damaged by its holder", CheckTakeOffDescriptor),
     ("FireRain consumes decoy-started callbacks", CheckFireRainRouting),
     ("Dash consumes tick callbacks", CheckDashRouting),
     ("FriendlyFire consumes attacker pre-damage callbacks", CheckFriendlyFireRouting),
@@ -63,6 +69,11 @@ var checks = new List<(string Name, Action Run)>
     ("DecoyXRay is a passive targeted reveal skill", CheckDecoyXRayDescriptor),
     ("ExplodingBarrel is a reusable active placement skill", CheckExplodingBarrelDescriptor),
     ("EnemySpawn is an active teleport skill", CheckEnemySpawnDescriptor),
+    ("HurtTeleport passively uses the safe NavMesh hurt route", CheckHurtTeleportSkillDescriptor),
+    ("RandomTeleport is a five-second active NavMesh teleport", CheckRandomTeleportSkillDescriptor),
+    ("WeaponSwap exchanges inventories while preserving C4 ownership", CheckWeaponSwapDescriptor),
+    ("DreadGaze darkens only enemies looking at its holder", CheckDreadGazeDescriptor),
+    ("Aimbot temporarily turns bullet hits into native headshots", CheckAimbotDescriptor),
     ("OneShot consumes attacker pre-damage callbacks", CheckOneShotRouting),
     ("LongKnife traces lethal primary knife attacks", CheckLongKnifeDescriptor),
     ("LongZeus traces lethal long-range taser shots", CheckLongZeusDescriptor),
@@ -77,6 +88,7 @@ var checks = new List<(string Name, Action Run)>
     ("RichBoy grants a bounded persistent round bonus", CheckRichBoyDescriptor),
     ("Thorns reflects bounded health damage without recursive scaling", CheckThornsDescriptor),
     ("Grenadier replenishes only high-explosive grenades", CheckGrenadierDescriptor),
+    ("Grenade replenishment tolerates event names and stale inventory handles", CheckGrenadeReplenishment),
     ("Ninja stacks three visibility conditions to full concealment", CheckNinjaDescriptor),
     ("Pilot consumes tick callbacks", CheckPilotRouting),
     ("Meito consumes victim pre-damage callbacks", CheckMeitoRouting),
@@ -436,6 +448,7 @@ static void CheckKillerSatellitePlan()
 static void CheckSkillMasterPlan()
 {
     var config = NewConfig();
+    config.MaxActiveSkillsPerPlayer = 4;
     Assert(config.MaxSkillsPerPlayer == 4,
         "This check requires the ordinary per-player maximum to remain four.");
     var skillMaster = new SkillMasterEvent();
@@ -450,6 +463,9 @@ static void CheckSkillMasterPlan()
     Assert(plan.Skills.SlotsPerPlayer == SkillMasterEvent.ChampionSkillCount
            && plan.Skills.SlotsPerPlayer == 5,
         "SkillMaster must safely override the ordinary four-skill cap with exactly five slots.");
+    Assert(plan.Skills.MaxActiveSkillsPerPlayer == SkillMasterEvent.ChampionMaxActiveSkillCount
+           && plan.Skills.MaxActiveSkillsPerPlayer == 1,
+        "SkillMaster must allow at most one active skill even when the global limit is higher.");
     Assert(skillMaster.Descriptor.ExclusiveTags.Contains("skill-availability"),
         "SkillMaster must conflict with NoSkill and full skill-replacement events.");
 }
@@ -549,6 +565,151 @@ static void CheckMindHackDescriptor()
            && reversed.HasFlag(PlayerButtons.Attack)
            && reversed.HasFlag(PlayerButtons.Use),
         "MindHack must preserve non-movement controls.");
+    Assert(MindHackService.ReverseMovementAxis(1.0f) == -1.0f
+           && MindHackService.ReverseMovementAxis(-0.75f) == 0.75f
+           && MindHackService.ReverseMovementAxis(float.NaN) == 0.0f,
+        "MindHack must reverse finite analog movement axes and reject invalid input.");
+}
+
+static void CheckReactiveArmorDescriptor()
+{
+    var settings = new ReactiveArmorSettings();
+    var skill = new ReactiveArmorSkill(settings);
+    Assert(skill.Descriptor.Kind == SkillKind.Passive
+           && skill.Descriptor.Rarity == SkillRarity.Common
+           && skill is IPreDamageSkill
+           && skill is ITickSkill,
+        "ReactiveArmor must be a common passive pre-damage and recharge skill.");
+    Assert(settings.RechargeSeconds == 15.0f
+           && settings.InitialCharges == 1
+           && settings.MaximumCharges == -1,
+        "ReactiveArmor must start with one charge and stack one every fifteen seconds.");
+    Assert(ReactiveArmorSkill.AddCharge(2, -1) == 3
+           && ReactiveArmorSkill.AddCharge(2, 2) == 2,
+        "ReactiveArmor charge stacking must support unlimited and configured caps.");
+    Assert(RoundPresentationService.HudUpdateInterval.TotalMilliseconds == 100,
+        "The global HUD must refresh every 100 ms to prevent visible flicker.");
+}
+
+static void CheckHurtTeleportRouting()
+{
+    Assert(typeof(IRoundEventPlayerHurt).IsAssignableFrom(typeof(HurtTeleportEvent)),
+        "HurtTeleport must react to post-damage player-hurt callbacks.");
+}
+
+static void CheckHurtTeleportSkillDescriptor()
+{
+    var descriptor = HurtTeleportSkill.Definition;
+    Assert(descriptor.Kind == SkillKind.Passive
+           && typeof(IPlayerHurtSkill).IsAssignableFrom(typeof(HurtTeleportSkill)),
+        "HurtTeleport must be a passive player-hurt skill.");
+    Assert(HurtTeleportSkill.TriggerCooldownSeconds >= 0.5f
+           && descriptor.ConflictTags.Contains("hit-teleport-control"),
+        "HurtTeleport must throttle repeated damage and conflict with global hit-teleport rules.");
+}
+
+static void CheckRandomTeleportSkillDescriptor()
+{
+    var descriptor = RandomTeleportSkill.Definition;
+    Assert(descriptor.Kind == SkillKind.Active
+           && descriptor.CooldownSeconds == RandomTeleportSkill.ActivationCooldownSeconds
+           && descriptor.CooldownSeconds == 5.0f,
+        "RandomTeleport must be an active skill with an exact five-second cooldown.");
+    Assert(descriptor.ConflictTags.Contains("player-teleport-control"),
+        "RandomTeleport must not stack with another active player-teleport skill.");
+}
+
+static void CheckWeaponSwapDescriptor()
+{
+    var descriptor = WeaponSwapSkill.Definition;
+    Assert(descriptor.Kind == SkillKind.Active
+           && descriptor.CooldownSeconds == WeaponSwapSkill.ActivationCooldownSeconds
+           && descriptor.CooldownSeconds == 30.0f,
+        "WeaponSwap must be an active skill with an exact thirty-second cooldown.");
+    Assert(typeof(IConditionalActivationSkill).IsAssignableFrom(typeof(WeaponSwapSkill)),
+        "WeaponSwap failures must not consume cooldown.");
+    Assert(WeaponSwapSkill.IsC4("weapon_c4") && !WeaponSwapSkill.IsC4("weapon_ak47"),
+        "WeaponSwap must preserve C4 ownership instead of transferring it.");
+}
+
+static void CheckDreadGazeDescriptor()
+{
+    var settings = new DreadGazeSettings();
+    var skill = new DreadGazeSkill(settings);
+    Assert(skill.Descriptor.Kind == SkillKind.Passive
+           && skill.Descriptor.Rarity == SkillRarity.Rare
+           && skill is ITickSkill,
+        "DreadGaze must be a rare passive tick-driven skill.");
+    Assert(skill.Descriptor.ConflictTags.Contains("screen-fade-vision"),
+        "DreadGaze must declare ownership of screen-fade vision effects.");
+    Assert(settings.MaximumDistance == 2500.0f
+           && settings.LookAngleDegrees == 8.0f
+           && settings.Alpha == 190
+           && settings.RefreshTicks == 8,
+        "DreadGaze defaults must provide a bounded responsive darkness effect.");
+    Assert(DreadGazeSkill.FadeDuration == 64
+           && DreadGazeSkill.FadeHoldTime == 64
+           && DreadGazeSkill.MinimumLookDot(8.0f) > 0.99f,
+        "DreadGaze must use a narrow look cone and a self-expiring Fade.");
+}
+
+static void CheckAimbotDescriptor()
+{
+    var skill = new AimbotSkill();
+    Assert(skill.Descriptor.Kind == SkillKind.Passive
+           && skill.Descriptor.Rarity == SkillRarity.Common
+           && skill is IPreDamageAttackerSkill,
+        "Aimbot must be a common passive attacker pre-damage skill.");
+    Assert(skill.Descriptor.ConflictTags.Contains("bullet-hitgroup-override"),
+        "Aimbot must own bullet hit-group replacement.");
+    Assert(AimbotHitGroupService.FiresBullets("weapon_ak47")
+           && AimbotHitGroupService.FiresBullets("awp")
+           && AimbotHitGroupService.FiresBullets("weapon_nova")
+           && !AimbotHitGroupService.FiresBullets("weapon_knife")
+           && !AimbotHitGroupService.FiresBullets("weapon_hegrenade"),
+        "Aimbot must affect firearms without changing knives or grenades.");
+}
+
+static void CheckRarityWeights()
+{
+    var weights = NewConfig().RarityWeights;
+    Assert(weights.Values.Sum() == 100,
+        "Default rarity weights must remain an easy-to-read percentage distribution.");
+    Assert(weights["Rare"] + weights["Epic"] + weights["Legendary"] == 30,
+        "Rare-or-higher skills must receive thirty percent of rarity-group selections.");
+    Assert(weights["Legendary"] >= 4 && weights["Epic"] >= 10,
+        "Epic and legendary skills must appear materially more often than the old defaults.");
+}
+
+static void CheckExplosionsAreArtPlan()
+{
+    var config = NewConfig();
+    var roundEvent = new ExplosionsAreArtEvent();
+    var builder = new RoundPlanBuilder(config);
+    builder.SetActiveEvents(new IRoundEvent[] { roundEvent });
+    roundEvent.Contribute(builder);
+    var plan = builder.Build();
+
+    Assert(plan.Skills.AssignmentMode == SkillAssignmentMode.AllPlayers,
+        "ExplosionsAreArt must target every eligible player.");
+    Assert(plan.Skills.ForcedMode == ForcedSkillMode.ReplaceAll
+           && plan.Skills.SlotsPerPlayer == 1
+           && plan.Skills.ForcedSkillIds.SequenceEqual(new[] { ExplosionsAreArtEvent.GrantedSkillId }),
+        "ExplosionsAreArt must replace ordinary assignments with only ExplosiveShot.");
+    Assert(roundEvent.Descriptor.ExclusiveTags.Contains("skill-selection-replace"),
+        "ExplosionsAreArt must not combine with another full skill-replacement event.");
+}
+
+static void CheckWasdMenuNavigation()
+{
+    Assert(WasdMenuService.MoveSelection(0, 5, -1) == 4,
+        "W must wrap from the first option to the last option.");
+    Assert(WasdMenuService.MoveSelection(4, 5, 1) == 0,
+        "S must wrap from the last option to the first option.");
+    Assert(WasdMenuService.MoveSelection(2, 5, 1) == 3,
+        "S must move to the next option.");
+    Assert(WasdMenuService.MoveSelection(2, 0, 1) == 0,
+        "An empty menu must keep a safe zero selection.");
 }
 
 static void CheckDeactivatorDescriptor()
@@ -939,8 +1100,10 @@ static void CheckToxicSmokeRouting()
     var toxicSmoke = new ToxicSmokeSkill(new ToxicSmokeSettings());
     Assert(toxicSmoke is ITickSkill,
         "ToxicSmoke must apply area damage through the tick pipeline.");
-    Assert(toxicSmoke is ISmokeDetonateSkill && toxicSmoke is ISmokeExpiredSkill,
-        "ToxicSmoke must consume the complete active-smoke lifecycle.");
+    Assert(toxicSmoke is ISmokeDetonateSkill
+           && toxicSmoke is ISmokeExpiredSkill
+           && toxicSmoke is IEntitySpawnedSkill,
+        "ToxicSmoke must color projectiles and consume the complete active-smoke lifecycle.");
     Assert(toxicSmoke is IGrenadeThrownSkill,
         "ToxicSmoke must track its configured smoke-grenade charges.");
 }
@@ -1027,6 +1190,35 @@ static void CheckGrenadierDescriptor()
     var deadlyGrenades = new DeadlyGrenadesEvent(new DeadlyGrenadesSettings());
     Assert(deadlyGrenades.Descriptor.BlockedSkillTags.Overlaps(grenadier.Descriptor.ConflictTags),
         "DeadlyGrenades must block the redundant personal Grenadier skill.");
+}
+
+static void CheckTakeOffDescriptor()
+{
+    var settings = new TakeOffSettings();
+    var skill = new TakeOffSkill(settings);
+    Assert(skill.Descriptor.Kind == SkillKind.Passive
+           && skill.Descriptor.Rarity == SkillRarity.Common
+           && skill is IPlayerHurtSkill,
+        "TakeOff must be a common passive player-hurt skill.");
+    Assert(skill.Descriptor.ConflictTags.Contains("on-hit-knockback-control"),
+        "TakeOff must not stack with another on-hit velocity controller.");
+    Assert(settings.JumpVelocity == 300.0f
+           && TakeOffSkill.CalculateVerticalVelocity(-200.0f, settings.JumpVelocity) == 300.0f
+           && TakeOffSkill.CalculateVerticalVelocity(450.0f, settings.JumpVelocity) == 450.0f,
+        "TakeOff must launch at 300 without slowing an already faster ascent.");
+}
+
+static void CheckGrenadeReplenishment()
+{
+    Assert(GrenadeReplenishment.DelaySeconds >= 0.25f,
+        "Grenade replenishment must wait for the thrown weapon handle to leave the inventory.");
+    Assert(GrenadeReplenishment.Matches("hegrenade", "hegrenade")
+           && GrenadeReplenishment.Matches("weapon_hegrenade", "hegrenade")
+           && !GrenadeReplenishment.Matches("flashbang", "hegrenade"),
+        "Grenade event matching must accept bare and designer-name forms without matching other grenades.");
+    Assert(GrenadeReplenishment.ToDesignerName("decoy") == "weapon_decoy"
+           && GrenadeReplenishment.ToDesignerName("weapon_smokegrenade") == "weapon_smokegrenade",
+        "Grenade designer names must be normalized exactly once.");
 }
 
 static void CheckNinjaDescriptor()
@@ -1253,7 +1445,9 @@ static void CheckHealingChickenDescriptor()
            && settings.HealPerTick == 2
            && settings.HealIntervalSeconds == 0.25f
            && settings.HealRadius == 150.0f
-           && settings.ChickenHealth == 50,
+           && settings.ChickenHealth == 50
+           && settings.SpeedMultiplier == 2.5f
+           && settings.MaximumExtraStep == 8.0f,
         "HealingChicken must preserve the reference spawn, healing, radius and health defaults.");
 }
 
@@ -1268,7 +1462,10 @@ static void CheckFindThemDescriptor()
            && findThem.Descriptor.MaxPerServer == 1
            && findThem.Descriptor.CooldownSeconds == 30.0f,
         "FindThem must be a server-limited rare active skill with a 30-second cooldown.");
-    Assert(settings.ChickenHealth == 30 && settings.SpawnRadius == 48.0f,
+    Assert(settings.ChickenHealth == 30
+           && settings.SpawnRadius == 48.0f
+           && settings.SpeedMultiplier == 2.75f
+           && settings.MaximumExtraStep == 10.0f,
         "FindThem must preserve the scout chicken health and spawn-radius defaults.");
 }
 
@@ -1284,20 +1481,33 @@ static void CheckKamikazeChickenDescriptor()
            && skill.Descriptor.CooldownSeconds == 30.0f,
         "KamikazeChicken must be a server-limited rare active skill with a 30-second cooldown.");
     Assert(settings.ModelScale == 1.35f
-           && settings.SpeedMultiplier == 1.20f
+           && settings.SpeedMultiplier == 3.0f
+           && settings.MaximumExtraStep == 12.0f
            && settings.DetonationDistance == 120.0f
            && settings.ExplosionDamage == 100.0f
            && settings.ExplosionRadius == 350.0f,
         "KamikazeChicken must preserve its scale, speed, proximity and explosion defaults.");
+    Assert(ChickenMovementBoost.CalculateExtraDistance(2.0f, 3.0f, 12.0f) == 4.0f
+           && ChickenMovementBoost.CalculateExtraDistance(20.0f, 3.0f, 12.0f) == 12.0f
+           && ChickenMovementBoost.CalculateExtraDistance(2.0f, 3.0f, 12.0f, 192.0f) == 1.0f
+           && ChickenMovementBoost.RepathAfterStuckTicks == 24,
+        "Chicken movement boost must amplify native path movement, cap each step, and repath stuck chickens.");
 }
 
 static void CheckFlashJumpRouting()
 {
-    var flashJump = new FlashJumpSkill(new FlashJumpSettings());
+    var settings = new FlashJumpSettings();
+    var flashJump = new FlashJumpSkill(settings);
     Assert(flashJump is IPlayerBlindSkill && flashJump is IFlashbangDetonateSkill,
         "FlashJump must consume blind and flashbang-detonate callbacks.");
     Assert(flashJump.Descriptor.ConflictTags.Contains("flashbang-behavior-control"),
         "FlashJump must conflict with other flashbang behavior skills.");
+    Assert(FlashJumpSkill.InitialFlashbangCount == 1
+           && settings.MaximumReplenishments == 2,
+        "FlashJump must grant one flashbang and replenish it at most twice.");
+    Assert(FlashJumpSkill.CalculateJumpVelocity(1.0f, 200.0f, 200.0f, 800.0f) == 400.0f
+           && FlashJumpSkill.CalculateJumpVelocity(10.0f, 200.0f, 200.0f, 800.0f) == 800.0f,
+        "FlashJump height must scale with blind duration and respect its velocity cap.");
 }
 
 static void CheckGlazRouting()

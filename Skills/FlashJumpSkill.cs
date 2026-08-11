@@ -7,6 +7,8 @@ namespace Myrt1eSkill_Remake.Skills;
 
 public sealed class FlashJumpSkill : ISkill, IPlayerBlindSkill, IFlashbangDetonateSkill
 {
+    public const int InitialFlashbangCount = 1;
+
     private sealed class FlashJumpState
     {
         public int ReplenishmentsUsed { get; set; }
@@ -26,7 +28,7 @@ public sealed class FlashJumpSkill : ISkill, IPlayerBlindSkill, IFlashbangDetona
     {
         Id = "FlashJump",
         DisplayName = "✈️ 闪光跳跃",
-        Description = "你的闪光弹会让敌人飞起来；致盲时间越长，飞得越高。",
+        Description = "你的闪光弹会让敌人飞起来！致盲时间越长飞得越高！获得 1 颗闪光弹，投掷后最多补充 2 次！",
         Kind = SkillKind.Passive,
         Rarity = SkillRarity.Common,
         DefaultWeight = 10,
@@ -41,7 +43,10 @@ public sealed class FlashJumpSkill : ISkill, IPlayerBlindSkill, IFlashbangDetona
         var state = new FlashJumpState();
         context.State.Set(state);
         context.Effects.RegisterCleanup(() => state.Active = false);
-        GiveFlashbang(context.Player);
+        for (var i = 0; i < InitialFlashbangCount; i++)
+        {
+            GiveFlashbang(context.Player);
+        }
     }
 
     public void OnActivated(in SkillContext context)
@@ -75,9 +80,10 @@ public sealed class FlashJumpSkill : ISkill, IPlayerBlindSkill, IFlashbangDetona
         var baseVelocity = FiniteOr(_settings.BaseJumpVelocity, 200.0f);
         var velocityPerSecond = FiniteOr(_settings.VelocityPerBlindSecond, 200.0f);
         var maximumVelocity = Math.Max(0.0f, FiniteOr(_settings.MaximumJumpVelocity, 800.0f));
-        pawn.AbsVelocity.Z = Math.Clamp(
-            Math.Max(0.0f, baseVelocity) + pawn.FlashDuration * Math.Max(0.0f, velocityPerSecond),
-            0.0f,
+        pawn.AbsVelocity.Z = CalculateJumpVelocity(
+            pawn.FlashDuration,
+            baseVelocity,
+            velocityPerSecond,
             maximumVelocity);
         Utilities.SetStateChanged(pawn, "CBaseEntity", "m_vecAbsVelocity");
         PluginText.Center(victim, "✈️ 你被闪光弹送上天了！");
@@ -112,6 +118,19 @@ public sealed class FlashJumpSkill : ISkill, IPlayerBlindSkill, IFlashbangDetona
         {
             player.GiveNamedItem("weapon_flashbang");
         }
+    }
+
+    public static float CalculateJumpVelocity(
+        float blindDuration,
+        float baseVelocity,
+        float velocityPerSecond,
+        float maximumVelocity)
+    {
+        var duration = float.IsFinite(blindDuration) ? Math.Max(0.0f, blindDuration) : 0.0f;
+        var basis = float.IsFinite(baseVelocity) ? Math.Max(0.0f, baseVelocity) : 200.0f;
+        var perSecond = float.IsFinite(velocityPerSecond) ? Math.Max(0.0f, velocityPerSecond) : 200.0f;
+        var maximum = float.IsFinite(maximumVelocity) ? Math.Max(0.0f, maximumVelocity) : 800.0f;
+        return Math.Clamp(basis + duration * perSecond, 0.0f, maximum);
     }
 
     private static float FiniteOr(float value, float fallback) => float.IsFinite(value) ? value : fallback;

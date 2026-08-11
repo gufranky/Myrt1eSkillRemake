@@ -103,7 +103,7 @@ public sealed class HealingSmokeSkill : ISkill,
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if (!string.Equals(@event.Weapon, "smokegrenade", StringComparison.OrdinalIgnoreCase)
+        if (!GrenadeReplenishment.Matches(@event.Weapon, "smokegrenade")
             || !context.State.TryGet<HealingSmokeState>(out var state)
             || !state.Active
             || state.ReplenishmentsRemaining <= 0)
@@ -113,7 +113,7 @@ public sealed class HealingSmokeSkill : ISkill,
 
         state.ReplenishmentsRemaining--;
         var player = context.Player;
-        context.Effects.AddTimer(0.01f, () =>
+        context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (state.Active)
             {

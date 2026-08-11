@@ -1,6 +1,5 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 using Myrt1eSkill_Remake.Core;
 
@@ -60,7 +59,7 @@ public sealed class DuplicatorSkill : ISkill
             return;
         }
 
-        var menu = new CenterHtmlMenu(
+        var menu = new WasdMenu(
             PluginText.Transform(copier, "📋 复制者：选择一名敌人"),
             plugin);
         foreach (var entry in targets)
@@ -73,7 +72,7 @@ public sealed class DuplicatorSkill : ISkill
                 (player, option) => TryCopyTarget(plugin, player, targetIndex, state));
         }
 
-        MenuManager.OpenCenterHtmlMenu(plugin, copier, menu);
+        plugin.WasdMenus.Open(copier, menu);
     }
 
     public void OnRevoked(in SkillContext context)
@@ -83,7 +82,7 @@ public sealed class DuplicatorSkill : ISkill
             state.Revoked = true;
         }
 
-        MenuManager.CloseActiveMenu(context.Player);
+        context.Plugin.WasdMenus.Close(context.Player);
     }
 
     private static void TryCopyTarget(
@@ -92,7 +91,6 @@ public sealed class DuplicatorSkill : ISkill
         uint targetIndex,
         DuplicatorState state)
     {
-        MenuManager.CloseActiveMenu(copier);
         if (state.Revoked || !copier.IsValid || !copier.PawnIsAlive)
         {
             return;

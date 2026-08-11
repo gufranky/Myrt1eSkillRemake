@@ -177,7 +177,9 @@ public sealed class ChickenModeEvent : RoundEventBase,
 
     private static CBaseModelEntity? CreateChickenModel(in RoundEventContext context, CCSPlayerPawn pawn)
     {
-        var chicken = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic");
+        // The chicken model is not authored as a regular dynamic prop. Using the
+        // override entity keeps the attached replacement visible to clients.
+        var chicken = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic_override");
         if (chicken is null)
         {
             return null;

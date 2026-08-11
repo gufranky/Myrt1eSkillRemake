@@ -63,9 +63,11 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private MindHackService _mindHack = null!;
     private NavMeshService _navMesh = null!;
     private NinjaVisibilityService _ninjaVisibility = null!;
+    private WasdMenuService _wasdMenus = null!;
 
     internal SkillManager RuntimeSkills => _skillManager;
     internal RoundPresentationService RuntimePresentation => _presentation;
+    internal WasdMenuService WasdMenus => _wasdMenus;
 
     public void OnConfigParsed(PluginConfig config)
     {
@@ -74,6 +76,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
 
     public override void Load(bool hotReload)
     {
+        _wasdMenus = new WasdMenuService(this);
         _navMesh = new NavMeshService(this);
         _navMesh.Load();
         _explosions = new ExplosiveProjectileService(this, Config.ExplosiveShot);
@@ -167,8 +170,9 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _fieldOfView,
             _tracker,
             _mindHack,
-            _ninjaVisibility);
-        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds);
+            _ninjaVisibility,
+            _navMesh);
+        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds, _navMesh);
         var performance = new PerformanceMonitor(this);
         _skillManager = new SkillManager(this, _registry, performance);
         _silentSounds = new SilentSoundService(this, _skillManager);
@@ -224,6 +228,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
 
     public override void Unload(bool hotReload)
     {
+        _wasdMenus?.CloseAll();
         _navMesh?.Unload();
         _silentSounds?.Unload();
         _damageEventRouter?.Unload();

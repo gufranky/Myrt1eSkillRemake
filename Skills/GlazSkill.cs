@@ -63,7 +63,7 @@ public sealed class GlazSkill : ISkill, IGrenadeThrownSkill
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if (!string.Equals(@event.Weapon, "smokegrenade", StringComparison.OrdinalIgnoreCase)
+        if (!GrenadeReplenishment.Matches(@event.Weapon, "smokegrenade")
             || !context.State.TryGet<GlazState>(out var state)
             || !state.Active
             || state.GrenadesRemaining <= 0)
@@ -79,7 +79,7 @@ public sealed class GlazSkill : ISkill, IGrenadeThrownSkill
 
         var player = context.Player;
         var effects = context.Effects;
-        effects.AddTimer(0.01f, () =>
+        effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (state.Active)
             {

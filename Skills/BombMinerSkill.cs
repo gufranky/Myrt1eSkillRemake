@@ -10,6 +10,7 @@ public sealed class BombMinerSkill : ISkill, IGrenadeThrownSkill
     private sealed class BombMinerState
     {
         public required int GrenadesRemaining { get; set; }
+        public bool Active { get; set; } = true;
     }
 
     private readonly BombMinerSettings _settings;
@@ -37,10 +38,12 @@ public sealed class BombMinerSkill : ISkill, IGrenadeThrownSkill
 
     public void OnGranted(in SkillContext context)
     {
-        context.State.Set(new BombMinerState
+        var state = new BombMinerState
         {
             GrenadesRemaining = Math.Clamp(_settings.GrenadeLimit, 1, 10)
-        });
+        };
+        context.State.Set(state);
+        context.Effects.RegisterCleanup(() => state.Active = false);
         _mines.Acquire(context.Player, context.Effects);
         GiveGrenade(context.Player);
     }
@@ -55,8 +58,9 @@ public sealed class BombMinerSkill : ISkill, IGrenadeThrownSkill
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if (!string.Equals(@event.Weapon, "hegrenade", StringComparison.OrdinalIgnoreCase)
+        if (!GrenadeReplenishment.Matches(@event.Weapon, "hegrenade")
             || !context.State.TryGet<BombMinerState>(out var state)
+            || !state.Active
             || state.GrenadesRemaining <= 0)
         {
             return;
@@ -65,7 +69,14 @@ public sealed class BombMinerSkill : ISkill, IGrenadeThrownSkill
         state.GrenadesRemaining--;
         if (state.GrenadesRemaining > 0)
         {
-            GiveGrenade(context.Player);
+            var player = context.Player;
+            context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
+            {
+                if (state.Active)
+                {
+                    GiveGrenade(player);
+                }
+            });
         }
     }
 

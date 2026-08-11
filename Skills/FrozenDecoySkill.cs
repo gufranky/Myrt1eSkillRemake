@@ -17,6 +17,7 @@ public sealed class FrozenDecoySkill : ISkill,
     private sealed class FrozenDecoyState
     {
         public required int GrenadesRemaining { get; set; }
+        public bool Active { get; set; } = true;
         public List<FrozenZone> Zones { get; } = new();
     }
 
@@ -44,7 +45,9 @@ public sealed class FrozenDecoySkill : ISkill,
     public void OnGranted(in SkillContext context)
     {
         var grenadeLimit = Math.Clamp(_settings.GrenadeLimit, 1, 10);
-        context.State.Set(new FrozenDecoyState { GrenadesRemaining = grenadeLimit });
+        var state = new FrozenDecoyState { GrenadesRemaining = grenadeLimit };
+        context.State.Set(state);
+        context.Effects.RegisterCleanup(() => state.Active = false);
         GiveDecoy(context.Player);
     }
 
@@ -79,8 +82,9 @@ public sealed class FrozenDecoySkill : ISkill,
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if (!string.Equals(@event.Weapon, "decoy", StringComparison.OrdinalIgnoreCase)
+        if (!GrenadeReplenishment.Matches(@event.Weapon, "decoy")
             || !context.State.TryGet<FrozenDecoyState>(out var state)
+            || !state.Active
             || state.GrenadesRemaining <= 0)
         {
             return;
@@ -89,7 +93,14 @@ public sealed class FrozenDecoySkill : ISkill,
         state.GrenadesRemaining--;
         if (state.GrenadesRemaining > 0)
         {
-            GiveDecoy(context.Player);
+            var player = context.Player;
+            context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
+            {
+                if (state.Active)
+                {
+                    GiveDecoy(player);
+                }
+            });
         }
     }
 

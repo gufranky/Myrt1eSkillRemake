@@ -1,6 +1,5 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 using Myrt1eSkill_Remake.Core;
 
@@ -60,7 +59,7 @@ public sealed class DeathNoteSkill : ISkill
             return;
         }
 
-        var menu = new CenterHtmlMenu(
+        var menu = new WasdMenu(
             PluginText.Transform(caster, "💀 死神名册：选择同归于尽的玩家"),
             context.Plugin);
         foreach (var target in targets)
@@ -71,7 +70,7 @@ public sealed class DeathNoteSkill : ISkill
                 (player, option) => TrySelectTarget(player, targetIndex, state));
         }
 
-        MenuManager.OpenCenterHtmlMenu(context.Plugin, caster, menu);
+        context.Plugin.WasdMenus.Open(caster, menu);
     }
 
     public void OnRevoked(in SkillContext context)
@@ -81,7 +80,7 @@ public sealed class DeathNoteSkill : ISkill
             state.Revoked = true;
         }
 
-        MenuManager.CloseActiveMenu(context.Player);
+        context.Plugin.WasdMenus.Close(context.Player);
     }
 
     private static void TrySelectTarget(
@@ -89,7 +88,6 @@ public sealed class DeathNoteSkill : ISkill
         uint targetIndex,
         DeathNoteState state)
     {
-        MenuManager.CloseActiveMenu(caster);
         if (state.Revoked || state.Used || !caster.IsValid || !caster.PawnIsAlive)
         {
             return;

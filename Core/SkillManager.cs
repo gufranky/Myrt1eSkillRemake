@@ -30,6 +30,19 @@ public sealed class SkillManager
         return session.Assignments.Select(item => item.Skill.Descriptor).ToArray();
     }
 
+    public IReadOnlyList<SkillDescriptor> GetActiveSkills(CCSPlayerController player)
+    {
+        if (!_sessions.TryGetValue(player.Slot, out var session) || !session.Matches(player))
+        {
+            return Array.Empty<SkillDescriptor>();
+        }
+
+        return session.Assignments
+            .Where(item => item.Skill.Descriptor.Kind == SkillKind.Active)
+            .Select(item => item.Skill.Descriptor)
+            .ToArray();
+    }
+
     public SkillDescriptor? TryGetDescriptor(string skillId) =>
         _registry.TryGet(skillId, out var skill) ? skill?.Descriptor : null;
 
@@ -427,7 +440,7 @@ public sealed class SkillManager
         RevokeSession(session, player);
     }
 
-    public bool TryActivate(CCSPlayerController? player)
+    public bool TryActivate(CCSPlayerController? player, string? skillId = null)
     {
         if (player is null || !player.IsValid || !player.PawnIsAlive)
         {
@@ -439,7 +452,9 @@ public sealed class SkillManager
             return false;
         }
 
-        var assignment = session.Assignments.FirstOrDefault(item => item.Skill.Descriptor.Kind == SkillKind.Active);
+        var assignment = session.Assignments.FirstOrDefault(item =>
+            item.Skill.Descriptor.Kind == SkillKind.Active
+            && (skillId is null || item.Skill.Descriptor.Id.Equals(skillId, StringComparison.OrdinalIgnoreCase)));
         if (assignment is null)
         {
             return false;
@@ -456,7 +471,14 @@ public sealed class SkillManager
         try
         {
             var context = CreateContext(player, assignment);
-            assignment.Skill.OnActivated(context);
+            var activated = assignment.Skill is IConditionalActivationSkill conditional
+                ? conditional.TryActivate(context)
+                : ActivateUnconditionally(assignment.Skill, context);
+            if (!activated)
+            {
+                return false;
+            }
+
             assignment.CooldownEndsAt = now.AddSeconds(Math.Max(0, assignment.Skill.Descriptor.CooldownSeconds));
             return true;
         }
@@ -469,6 +491,12 @@ public sealed class SkillManager
                 player.Slot);
             return false;
         }
+    }
+
+    private static bool ActivateUnconditionally(ISkill skill, in SkillContext context)
+    {
+        skill.OnActivated(context);
+        return true;
     }
 
     public void Dispatch<THandler>(
@@ -610,9 +638,58 @@ public sealed class SkillManager
             }
         }
 
+        var granted = new List<ISkill>(selected.Count);
+        var failedSkillIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var skill in selected)
         {
-            GrantSkill(session, player, skill);
+            if (GrantSkill(session, player, skill))
+            {
+                granted.Add(skill);
+            }
+            else
+            {
+                failedSkillIds.Add(skill.Descriptor.Id);
+            }
+        }
+
+        // A skill can fail during OnGranted even after it passed selection. Fill
+        // the vacated slot so special plans such as SkillMaster still grant five.
+        while (granted.Count < requestedCount)
+        {
+            var candidates = GetCandidates(
+                player,
+                session,
+                granted,
+                eligiblePlayers,
+                plan,
+                failedSkillIds);
+            var replacement = RaritySelector.Select(
+                candidates,
+                GetRarity,
+                GetRarityWeight,
+                GetWeight);
+            if (replacement is null)
+            {
+                break;
+            }
+
+            if (GrantSkill(session, player, replacement))
+            {
+                granted.Add(replacement);
+            }
+            else
+            {
+                failedSkillIds.Add(replacement.Descriptor.Id);
+            }
+        }
+
+        if (granted.Count < requestedCount)
+        {
+            _plugin.Logger.LogWarning(
+                "Only {GrantedCount} of {RequestedCount} skills could be granted to slot {Slot}",
+                granted.Count,
+                requestedCount,
+                player.Slot);
         }
     }
 
@@ -652,7 +729,8 @@ public sealed class SkillManager
         PlayerSession session,
         IReadOnlyCollection<ISkill> selected,
         IReadOnlyCollection<CCSPlayerController> eligiblePlayers,
-        SkillPlan plan)
+        SkillPlan plan,
+        IReadOnlySet<string>? excludedSkillIds = null)
     {
         var selectedIds = selected
             .Select(skill => skill.Descriptor.Id)
@@ -663,6 +741,7 @@ public sealed class SkillManager
 
         var compatible = _registry.All
             .Where(skill => !selectedIds.Contains(skill.Descriptor.Id))
+            .Where(skill => excludedSkillIds?.Contains(skill.Descriptor.Id) != true)
             .Where(skill => plan.ForcedMode != ForcedSkillMode.PoolOnly || plan.ForcedSkillIds.Contains(skill.Descriptor.Id, StringComparer.OrdinalIgnoreCase))
             .Where(skill => CanSelectSkill(skill, player, selected, eligiblePlayers, plan, usedTags))
             .ToArray();

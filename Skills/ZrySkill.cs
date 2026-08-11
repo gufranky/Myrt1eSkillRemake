@@ -42,7 +42,7 @@ public sealed class ZrySkill : ISkill, IGrenadeThrownSkill
 
     public void OnGrenadeThrown(in SkillContext context, EventGrenadeThrown @event)
     {
-        if (!string.Equals(@event.Weapon, "decoy", StringComparison.OrdinalIgnoreCase)
+        if (!GrenadeReplenishment.Matches(@event.Weapon, "decoy")
             || !context.State.TryGet<ZryState>(out var state)
             || !state.Active)
         {
@@ -51,7 +51,7 @@ public sealed class ZrySkill : ISkill, IGrenadeThrownSkill
 
         var player = context.Player;
         var effects = context.Effects;
-        effects.AddTimer(0.01f, () =>
+        effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (state.Active)
             {

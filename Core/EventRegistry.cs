@@ -13,7 +13,8 @@ public sealed class EventRegistry
     public static EventRegistry CreateDefault(
         PluginConfig config,
         WallhackService wallhack,
-        DeafSoundService deafSounds)
+        DeafSoundService deafSounds,
+        NavMeshService navMesh)
     {
         var registry = new EventRegistry();
         registry.Register(new NormalRoundEvent());
@@ -29,6 +30,7 @@ public sealed class EventRegistry
         registry.Register(new BlitzkriegEvent());
         registry.Register(new SlowMotionEvent());
         registry.Register(new SwapOnHitEvent());
+        registry.Register(new HurtTeleportEvent(navMesh));
         registry.Register(new DecoyTeleportEvent());
         registry.Register(new ChickenModeEvent());
         registry.Register(new BankruptcyEvent());
@@ -43,6 +45,7 @@ public sealed class EventRegistry
         registry.Register(new SilentWorldEvent(deafSounds));
         registry.Register(new AnywhereBombPlantEvent());
         registry.Register(new KillerSatelliteEvent());
+        registry.Register(new ExplosionsAreArtEvent());
         registry.Register(new SkillMasterEvent());
         registry.Register(new RainyDayEvent(config.RainyDay));
         registry.Register(new SuperpowerXrayEvent(wallhack));

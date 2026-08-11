@@ -1,6 +1,5 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 using Myrt1eSkill_Remake.Core;
 
@@ -73,7 +72,7 @@ public sealed class TrackerSkill : ISkill, IPlayerDeathSkill
             return;
         }
 
-        var menu = new CenterHtmlMenu(
+        var menu = new WasdMenu(
             PluginText.Transform(caster, "🐾 追踪器：选择留下痕迹的敌人"),
             context.Plugin);
         foreach (var enemy in enemies)
@@ -84,7 +83,7 @@ public sealed class TrackerSkill : ISkill, IPlayerDeathSkill
                 (player, option) => TrySelectTarget(player, enemyIndex, state));
         }
 
-        MenuManager.OpenCenterHtmlMenu(context.Plugin, caster, menu);
+        context.Plugin.WasdMenus.Open(caster, menu);
     }
 
     public void OnRevoked(in SkillContext context)
@@ -95,7 +94,7 @@ public sealed class TrackerSkill : ISkill, IPlayerDeathSkill
         }
 
         state.Revoked = true;
-        MenuManager.CloseActiveMenu(context.Player);
+        context.Plugin.WasdMenus.Close(context.Player);
         ReleaseTarget(state);
     }
 
@@ -110,7 +109,6 @@ public sealed class TrackerSkill : ISkill, IPlayerDeathSkill
 
     private void TrySelectTarget(CCSPlayerController caster, uint targetIndex, TrackerState state)
     {
-        MenuManager.CloseActiveMenu(caster);
         if (state.Revoked || state.Used || !caster.IsValid || !caster.PawnIsAlive)
         {
             return;

@@ -13,6 +13,7 @@ public sealed class KamikazeChickenService : IDisposable
     {
         public required uint ChickenIndex { get; init; }
         public required uint TargetControllerIndex { get; init; }
+        public ChickenMovementBoost.State Movement { get; } = new();
     }
 
     private readonly KamikazeChickenSettings _settings;
@@ -115,7 +116,13 @@ public sealed class KamikazeChickenService : IDisposable
             chicken.Leader.Raw = target.PlayerPawn.Raw;
         }
 
-        Accelerate(chicken);
+        ChickenMovementBoost.Update(
+            chicken,
+            targetOrigin,
+            active.Movement,
+            _settings.SpeedMultiplier,
+            _settings.MaximumExtraStep,
+            _settings.MaximumSpeed);
         var triggerDistance = PositiveFiniteOr(_settings.DetonationDistance, 120.0f);
         if (DistanceSquared(chickenOrigin, targetOrigin) > triggerDistance * triggerDistance)
         {
@@ -158,28 +165,6 @@ public sealed class KamikazeChickenService : IDisposable
         {
             Remove(ownerIndex);
         }
-    }
-
-    private void Accelerate(CChicken chicken)
-    {
-        var velocity = chicken.AbsVelocity;
-        var horizontalSpeed = MathF.Sqrt(velocity.X * velocity.X + velocity.Y * velocity.Y);
-        if (horizontalSpeed < 1.0f)
-        {
-            return;
-        }
-
-        var multiplier = PositiveFiniteOr(_settings.SpeedMultiplier, 1.20f);
-        var maximumSpeed = PositiveFiniteOr(_settings.MaximumSpeed, 180.0f);
-        var desiredSpeed = Math.Min(horizontalSpeed * multiplier, maximumSpeed);
-        if (desiredSpeed <= horizontalSpeed + 0.01f)
-        {
-            return;
-        }
-
-        var scale = desiredSpeed / horizontalSpeed;
-        velocity.X *= scale;
-        velocity.Y *= scale;
     }
 
     private static void SetScale(CChicken chicken, float scale)

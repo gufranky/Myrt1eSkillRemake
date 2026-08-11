@@ -44,6 +44,7 @@ public sealed class RoundPlanBuilder
     private readonly HashSet<string> _blockedSkillTags = new(StringComparer.OrdinalIgnoreCase);
     private bool _skillsEnabled;
     private int _requiredSlots;
+    private int? _maxActiveSkillsOverride;
     private ForcedSkillMode _forcedMode;
     private SkillAssignmentMode _assignmentMode;
 
@@ -75,10 +76,11 @@ public sealed class RoundPlanBuilder
         _requiredSlots = Math.Max(_requiredSlots, totalSlots);
     }
 
-    public void AssignOneRandomPlayerPerTeam(int skillCount)
+    public void AssignOneRandomPlayerPerTeam(int skillCount, int maxActiveSkills = 1)
     {
         _assignmentMode = SkillAssignmentMode.OneRandomPlayerPerTeam;
         _requiredSlots = Math.Max(_requiredSlots, Math.Clamp(skillCount, 0, 8));
+        _maxActiveSkillsOverride = Math.Clamp(maxActiveSkills, 0, 8);
     }
 
     public void ReplaceAllSkills(params string[] skillIds)
@@ -119,6 +121,10 @@ public sealed class RoundPlanBuilder
             ? Math.Max(configuredMaxSlots, Math.Clamp(_requiredSlots, 0, 8))
             : configuredMaxSlots;
         var slots = Math.Clamp(_requiredSlots, 0, maxSlots);
+        var configuredMaxActiveSkills = Math.Clamp(_config.MaxActiveSkillsPerPlayer, 0, maxSlots);
+        var maxActiveSkills = _maxActiveSkillsOverride is { } activeOverride
+            ? Math.Min(configuredMaxActiveSkills, activeOverride)
+            : configuredMaxActiveSkills;
         var forcedMode = _skillsEnabled ? _forcedMode : ForcedSkillMode.None;
         var forcedSkills = _skillsEnabled ? _forcedSkills.ToArray() : Array.Empty<string>();
 
@@ -138,7 +144,7 @@ public sealed class RoundPlanBuilder
             {
                 Enabled = _skillsEnabled && slots > 0,
                 SlotsPerPlayer = slots,
-                MaxActiveSkillsPerPlayer = Math.Clamp(_config.MaxActiveSkillsPerPlayer, 0, maxSlots),
+                MaxActiveSkillsPerPlayer = maxActiveSkills,
                 AssignmentMode = _assignmentMode,
                 ForcedMode = forcedMode,
                 ForcedSkillIds = forcedSkills,

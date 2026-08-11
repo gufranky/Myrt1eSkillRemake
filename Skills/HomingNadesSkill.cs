@@ -71,11 +71,11 @@ public sealed class HomingNadesSkill : ISkill, IGrenadeThrownSkill
         }
 
         int remaining;
-        if (@event.Weapon.Equals("hegrenade", StringComparison.OrdinalIgnoreCase))
+        if (GrenadeReplenishment.Matches(@event.Weapon, "hegrenade"))
         {
             remaining = --state.HeGrenadesRemaining;
         }
-        else if (@event.Weapon.Equals("flashbang", StringComparison.OrdinalIgnoreCase))
+        else if (GrenadeReplenishment.Matches(@event.Weapon, "flashbang"))
         {
             remaining = --state.FlashbangsRemaining;
         }
@@ -90,8 +90,8 @@ public sealed class HomingNadesSkill : ISkill, IGrenadeThrownSkill
         }
 
         var player = context.Player;
-        var weaponName = $"weapon_{@event.Weapon}";
-        context.Effects.AddTimer(0.01f, () =>
+        var weaponName = GrenadeReplenishment.ToDesignerName(@event.Weapon);
+        context.Effects.AddTimer(GrenadeReplenishment.DelaySeconds, () =>
         {
             if (state.Active)
             {
