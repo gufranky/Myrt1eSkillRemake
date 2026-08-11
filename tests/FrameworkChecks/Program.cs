@@ -1,3 +1,5 @@
+using CounterStrikeSharp.API;
+using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 using Myrt1eSkill_Remake.Configuration;
 using Myrt1eSkill_Remake.Core;
@@ -13,9 +15,13 @@ var checks = new List<(string Name, Action Run)>
     ("Round plan clamps slots and active skill count", CheckPlanLimits),
     ("SpeedBoost is an exclusive 50-percent movement skill", CheckSpeedBoostDescriptor),
     ("DeathNote is a one-use active mutual-suicide skill", CheckDeathNoteDescriptor),
+    ("ZoneReaper disables one bomb site for Counter-Terrorists", CheckZoneReaperDescriptor),
+    ("Ghoul inherits compatible skills up to five with one active", CheckGhoulDescriptor),
+    ("MindHack swaps only movement button pairs", CheckMindHackDescriptor),
     ("Duplicator is an active assignment-replacement skill", CheckDuplicatorDescriptor),
     ("Deactivator is an epic one-use assignment removal skill", CheckDeactivatorDescriptor),
     ("ChooseOneOfThree replaces itself from three candidates", CheckChooseOneOfThreeDescriptor),
+    ("ChooseOneOfThree reservations consume limited-skill capacity", CheckChoiceReservationCapacity),
     ("RangeFinder provides passive distance and targeted vision", CheckRangeFinderDescriptor),
     ("InfiniteAmmo refills fire, reload and grenade paths", CheckInfiniteAmmoRouting),
     ("FastBunnyHop blocks player jump-control skills", CheckFastBunnyHopCompatibility),
@@ -24,6 +30,11 @@ var checks = new List<(string Name, Action Run)>
     ("Jump events consume weapon-fire callbacks", CheckJumpEventRouting),
     ("Jump event variants cannot be combined", CheckJumpEventConflict),
     ("Spread-changing events cannot be combined", CheckSpreadEventConflict),
+    ("Inaccurate forces global spread and blocks spread skills", CheckInaccurateDescriptor),
+    ("SilentWorld suppresses all sound recipients and blocks redundant skills", CheckSilentWorldDescriptor),
+    ("AnywhereBombPlant forces bomb-zone state and a sixty-second timer", CheckAnywhereBombPlantDescriptor),
+    ("KillerSatellite replaces all assignments with KillerFlash and Meito", CheckKillerSatellitePlan),
+    ("SkillMaster assigns five skills to one random player per team", CheckSkillMasterPlan),
     ("Time-scale events cannot be combined", CheckTimeScaleConflict),
     ("SwapOnHit consumes hurt and tick callbacks", CheckSwapOnHitRouting),
     ("DecoyTeleport consumes decoy and spawn callbacks", CheckDecoyTeleportRouting),
@@ -39,6 +50,7 @@ var checks = new List<(string Name, Action Run)>
     ("SuperRecoil consumes weapon-fire callbacks", CheckSuperRecoilRouting),
     ("Skill state bags isolate assignment state", CheckSkillStateIsolation),
     ("Armored consumes the pre-damage pipeline", CheckArmoredRouting),
+    ("BladeMaster conditionally deflects bullet damage while holding a knife", CheckBladeMasterDescriptor),
     ("IronHead consumes victim pre-hurt callbacks", CheckIronHeadRouting),
     ("Dwarf controls player scale", CheckDwarfDescriptor),
     ("EnemySpin consumes player-hurt callbacks", CheckEnemySpinRouting),
@@ -46,6 +58,7 @@ var checks = new List<(string Name, Action Run)>
     ("Dash consumes tick callbacks", CheckDashRouting),
     ("FriendlyFire consumes attacker pre-damage callbacks", CheckFriendlyFireRouting),
     ("FrozenDecoy consumes its complete decoy lifecycle", CheckFrozenDecoyRouting),
+    ("MagneticDecoy attracts nearby players through its lifecycle", CheckMagneticDecoyRouting),
     ("DecoyXRay is a passive targeted reveal skill", CheckDecoyXRayDescriptor),
     ("ExplodingBarrel is a reusable active placement skill", CheckExplodingBarrelDescriptor),
     ("EnemySpawn is an active teleport skill", CheckEnemySpawnDescriptor),
@@ -59,12 +72,20 @@ var checks = new List<(string Name, Action Run)>
     ("RadarHack consumes tick callbacks", CheckRadarHackRouting),
     ("ToxicSmoke consumes its complete smoke lifecycle", CheckToxicSmokeRouting),
     ("HealingSmoke colors, tracks, replenishes, and heals", CheckHealingSmokeRouting),
+    ("Pyro converts inferno damage into health and carries two fire grenades", CheckPyroRouting),
+    ("RichBoy grants a bounded persistent round bonus", CheckRichBoyDescriptor),
+    ("Thorns reflects bounded health damage without recursive scaling", CheckThornsDescriptor),
+    ("Grenadier replenishes only high-explosive grenades", CheckGrenadierDescriptor),
+    ("Ninja stacks three visibility conditions to full concealment", CheckNinjaDescriptor),
     ("Pilot consumes tick callbacks", CheckPilotRouting),
     ("Meito consumes victim pre-damage callbacks", CheckMeitoRouting),
     ("BombMiner consumes grenade-thrown callbacks", CheckBombMinerRouting),
     ("HotBomb burns the living enemy C4 carrier", CheckHotBombDescriptor),
     ("SoundMaker emits enemy screams on tick", CheckSoundMakerRouting),
+    ("Silent filters reference footsteps and jump sounds", CheckSilentDescriptor),
     ("ThirdEye toggles a zero-cooldown camera", CheckThirdEyeDescriptor),
+    ("FalconEye toggles a weapon-blocking overhead camera", CheckFalconEyeDescriptor),
+    ("Cypher separates camera switching from redeployment cooldown", CheckCypherDescriptor),
     ("TimeRecall records history for active rewind", CheckTimeRecallDescriptor),
     ("TimeController owns global timescale", CheckTimeControllerDescriptor),
     ("Muhammad consumes player-death callbacks", CheckMuhammadRouting),
@@ -75,6 +96,9 @@ var checks = new List<(string Name, Action Run)>
     ("Ghost consumes hurt and death callbacks", CheckGhostRouting),
     ("AntiFlash consumes player-blind callbacks", CheckAntiFlashRouting),
     ("Chicken controls model, scale and movement", CheckChickenRouting),
+    ("HealingChicken follows, heals, and can be killed", CheckHealingChickenDescriptor),
+    ("FindThem assigns one scout chicken to every living enemy", CheckFindThemDescriptor),
+    ("KamikazeChicken tracks a random enemy and detonates a native HE", CheckKamikazeChickenDescriptor),
     ("FlashJump consumes blind and flash-detonate callbacks", CheckFlashJumpRouting),
     ("Glaz replenishes smoke grenades", CheckGlazRouting),
     ("HolyHandGrenade replenishes enhanced HE grenades", CheckHolyHandGrenadeRouting),
@@ -89,6 +113,7 @@ var checks = new List<(string Name, Action Run)>
     ("Nightmare is a one-use active vision debuff", CheckNightmareDescriptor),
     ("Darkness uses the reference persistent black Fade", CheckDarknessDescriptor),
     ("Magnifier applies and restores a targeted FOV override", CheckMagnifierDescriptor),
+    ("Tracker creates a private selected-player trail", CheckTrackerDescriptor),
     ("HomingNades tracks non-smoke projectiles and replenishes grenades", CheckHomingNadesDescriptor),
     ("Spectator toggles a zero-cooldown enemy camera", CheckSpectatorDescriptor),
     ("BlastShot launches native HE projectiles from MP5 secondary fire", CheckBlastShotDescriptor),
@@ -100,6 +125,7 @@ var checks = new List<(string Name, Action Run)>
     ("ThrowingKnife launches the holder's stealable lethal knife", CheckThrowingKnifeDescriptor),
     ("Jumper grants exactly one extra airborne jump", CheckJumperDescriptor),
     ("Jammer is an active crosshair suppression skill", CheckJammerDescriptor),
+    ("Deaf removes its target from server sound recipients", CheckDeafDescriptor),
     ("Illiterate scrambles letters and digits", CheckIlliterateScramble),
     ("Skill reveal timing matches jRandomSkills", CheckRevealTiming),
     ("Skill presentation defaults match jRandomSkills", CheckPresentationDefaults)
@@ -315,6 +341,116 @@ static void CheckInfiniteColoredSmokeRouting()
         "InfiniteColoredSmoke must block per-player smoke behavior overrides.");
 }
 
+static void CheckBladeMasterDescriptor()
+{
+    var settings = new BladeMasterSettings();
+    var bladeMaster = new BladeMasterSkill(settings);
+    Assert(bladeMaster is IPreDamageSkill,
+        "BladeMaster must cancel bullets before damage is committed.");
+    Assert(bladeMaster.Descriptor.Kind == SkillKind.Passive
+           && bladeMaster.Descriptor.Rarity == SkillRarity.Common,
+        "BladeMaster must be a common passive skill.");
+    Assert(BladeMasterSkill.GetDeflectionChance(HitGroup_t.HITGROUP_CHEST, settings) == 0.95f
+           && BladeMasterSkill.GetDeflectionChance(HitGroup_t.HITGROUP_LEFTLEG, settings) == 0.70f,
+        "BladeMaster must preserve the reference torso and leg chances.");
+    Assert(BladeMasterSkill.IsKnifeDesignerName("weapon_knife")
+           && BladeMasterSkill.IsKnifeDesignerName("weapon_bayonet")
+           && !BladeMasterSkill.IsKnifeDesignerName("weapon_taser"),
+        "BladeMaster must recognize knives without accepting the Zeus.");
+}
+
+static void CheckInaccurateDescriptor()
+{
+    var config = NewConfig();
+    var settings = new InaccurateSettings();
+    var inaccurate = new InaccurateEvent(settings);
+    var jumpPlusPlus = new JumpPlusPlusEvent();
+
+    Assert(settings.ForcedSpread == 0.088f,
+        "Inaccurate must default to the requested obvious forced spread.");
+    Assert(inaccurate.Descriptor.ExclusiveTags.Contains("weapon-spread-rules"),
+        "Inaccurate must own the global weapon-spread rule.");
+    Assert(!CompatibilityResolver.CanCombine(new IRoundEvent[] { jumpPlusPlus }, inaccurate),
+        "Inaccurate must conflict with global no-spread events.");
+
+    var builder = new RoundPlanBuilder(config);
+    builder.SetActiveEvents(new IRoundEvent[] { inaccurate });
+    var plan = builder.Build();
+    Assert(plan.Skills.BlockedSkillTags.Contains("weapon-spread-control"),
+        "Inaccurate must block skills that override weapon spread.");
+}
+
+static void CheckSilentWorldDescriptor()
+{
+    var silentWorld = new SilentWorldEvent(null!);
+    var deaf = new DeafSkill(null!);
+    var silent = new SilentSkill();
+    Assert(silentWorld.Descriptor.ExclusiveTags.Contains("global-sound-rules"),
+        "SilentWorld must own the global sound rule.");
+    Assert(silentWorld.Descriptor.BlockedSkillTags.Overlaps(deaf.Descriptor.ConflictTags)
+           && silentWorld.Descriptor.BlockedSkillTags.Overlaps(silent.Descriptor.ConflictTags),
+        "SilentWorld must block redundant targeted and personal sound-suppression skills.");
+    Assert(DeafSoundService.SoundEventMessageId == 208,
+        "SilentWorld must suppress CS2 sound-event user message 208.");
+}
+
+static void CheckAnywhereBombPlantDescriptor()
+{
+    var anywherePlant = new AnywhereBombPlantEvent();
+    var zoneReaper = new ZoneReaperSkill();
+    Assert(anywherePlant is IRoundEventTick && anywherePlant is IRoundEventEntitySpawned,
+        "AnywhereBombPlant must maintain bomb-zone state and patch the planted C4 deadline.");
+    Assert(AnywhereBombPlantEvent.BombTimerSeconds == 60,
+        "AnywhereBombPlant must use the requested sixty-second explosion timer.");
+    Assert(anywherePlant.Descriptor.ExclusiveTags.Contains("bomb-plant-rules")
+           && anywherePlant.Descriptor.ExclusiveTags.Contains("bomb-timer-rules"),
+        "AnywhereBombPlant must own global planting and C4 timer rules.");
+    Assert(anywherePlant.Descriptor.BlockedSkillTags.Overlaps(zoneReaper.Descriptor.ConflictTags),
+        "AnywhereBombPlant must block ZoneReaper because bomb sites are bypassed.");
+}
+
+static void CheckKillerSatellitePlan()
+{
+    var config = NewConfig();
+    var killerSatellite = new KillerSatelliteEvent();
+    var moreSkills = new MoreSkillsEvent();
+    var builder = new RoundPlanBuilder(config);
+    builder.SetActiveEvents(new IRoundEvent[] { killerSatellite, moreSkills });
+    killerSatellite.Contribute(builder);
+    moreSkills.Contribute(builder);
+    var plan = builder.Build();
+
+    Assert(plan.Skills.ForcedMode == ForcedSkillMode.ReplaceAll,
+        "KillerSatellite must replace ordinary random assignments.");
+    Assert(plan.Skills.SlotsPerPlayer == 2
+           && plan.Skills.ForcedSkillIds.SequenceEqual(new[] { "KillerFlash", "Meito" }),
+        "KillerSatellite must grant exactly KillerFlash and Meito, even alongside MoreSkills.");
+    Assert(killerSatellite.Descriptor.ExclusiveTags.Contains("skill-availability")
+           && killerSatellite.Descriptor.ExclusiveTags.Contains("skill-selection-replace"),
+        "KillerSatellite must conflict with other skill-replacement events.");
+}
+
+static void CheckSkillMasterPlan()
+{
+    var config = NewConfig();
+    Assert(config.MaxSkillsPerPlayer == 4,
+        "This check requires the ordinary per-player maximum to remain four.");
+    var skillMaster = new SkillMasterEvent();
+    var builder = new RoundPlanBuilder(config);
+    builder.SetActiveEvents(new IRoundEvent[] { skillMaster });
+    skillMaster.Contribute(builder);
+    var plan = builder.Build();
+
+    Assert(plan.Skills.Enabled
+           && plan.Skills.AssignmentMode == SkillAssignmentMode.OneRandomPlayerPerTeam,
+        "SkillMaster must target one random recipient on each playing team.");
+    Assert(plan.Skills.SlotsPerPlayer == SkillMasterEvent.ChampionSkillCount
+           && plan.Skills.SlotsPerPlayer == 5,
+        "SkillMaster must safely override the ordinary four-skill cap with exactly five slots.");
+    Assert(skillMaster.Descriptor.ExclusiveTags.Contains("skill-availability"),
+        "SkillMaster must conflict with NoSkill and full skill-replacement events.");
+}
+
 static void CheckSpeedBoostDescriptor()
 {
     var speedBoost = new SpeedBoostSkill();
@@ -349,6 +485,69 @@ static void CheckDuplicatorDescriptor()
         "Duplicator must declare runtime ownership of its skill assignment.");
 }
 
+static void CheckZoneReaperDescriptor()
+{
+    var zoneReaper = new ZoneReaperSkill();
+    Assert(zoneReaper is ITickSkill,
+        "ZoneReaper must notify C4 carriers through the tick pipeline.");
+    Assert(zoneReaper.Descriptor.Kind == SkillKind.Active
+           && zoneReaper.Descriptor.Rarity == SkillRarity.Common
+           && zoneReaper.Descriptor.CooldownSeconds == 0.0f,
+        "ZoneReaper must be a one-use common active skill.");
+    Assert(zoneReaper.Descriptor.OnlyTeam == CsTeam.CounterTerrorist
+           && zoneReaper.Descriptor.MaxPerServer == 1,
+        "ZoneReaper must be CT-only and limited to one holder.");
+    Assert(zoneReaper.Descriptor.ConflictTags.Contains("bombsite-control"),
+        "ZoneReaper must declare ownership of bombsite state.");
+}
+
+static void CheckGhoulDescriptor()
+{
+    var settings = new GhoulSettings();
+    var ghoul = new GhoulSkill(settings);
+    Assert(ghoul is IPlayerDeathSkill,
+        "Ghoul must consume global player-death callbacks.");
+    Assert(ghoul.Descriptor.Kind == SkillKind.Passive
+           && ghoul.Descriptor.Rarity == SkillRarity.Common
+           && settings.MaximumSkills == 5,
+        "Ghoul must be a common passive skill with a five-skill ownership cap.");
+    Assert(ghoul.Descriptor.Description.Contains("主动技能最多 1 个", StringComparison.Ordinal),
+        "Ghoul must advertise that only the first active skill is retained.");
+    Assert(ghoul.Descriptor.ConflictTags.Contains("runtime-skill-collection"),
+        "Ghoul must declare ownership of runtime skill collection.");
+}
+
+static void CheckMindHackDescriptor()
+{
+    var settings = new MindHackSettings();
+    var mindHack = new MindHackSkill(settings, null!);
+    Assert(mindHack is IPlayerDeathSkill,
+        "MindHack must clean its target when that player dies.");
+    Assert(mindHack.Descriptor.Kind == SkillKind.Active
+           && mindHack.Descriptor.Rarity == SkillRarity.Rare
+           && mindHack.Descriptor.CooldownSeconds == 0.0f
+           && settings.DurationSeconds == 15.0f,
+        "MindHack must be a one-use fifteen-second rare active skill affecting every living enemy.");
+    Assert(mindHack.Descriptor.Description.Contains("所有存活敌人", StringComparison.Ordinal),
+        "MindHack must advertise its all-enemy scope.");
+
+    var original = PlayerButtons.Forward
+                   | PlayerButtons.Moveleft
+                   | PlayerButtons.Jump
+                   | PlayerButtons.Attack
+                   | PlayerButtons.Use;
+    var reversed = MindHackService.ReverseMovementButtons(original);
+    Assert(reversed.HasFlag(PlayerButtons.Back)
+           && reversed.HasFlag(PlayerButtons.Moveright)
+           && !reversed.HasFlag(PlayerButtons.Forward)
+           && !reversed.HasFlag(PlayerButtons.Moveleft),
+        "MindHack must swap forward/back and left/right.");
+    Assert(reversed.HasFlag(PlayerButtons.Jump)
+           && reversed.HasFlag(PlayerButtons.Attack)
+           && reversed.HasFlag(PlayerButtons.Use),
+        "MindHack must preserve non-movement controls.");
+}
+
 static void CheckDeactivatorDescriptor()
 {
     var deactivator = new DeactivatorSkill();
@@ -365,12 +564,24 @@ static void CheckDeactivatorDescriptor()
 static void CheckChooseOneOfThreeDescriptor()
 {
     var chooser = new ChooseOneOfThreeSkill();
-    Assert(chooser.Descriptor.Kind == SkillKind.Active,
-        "ChooseOneOfThree must open its selection menu through active-skill input.");
+    Assert(chooser.Descriptor.Kind == SkillKind.Active && chooser is IPlayerDeathSkill,
+        "ChooseOneOfThree must use active input and release pending reservations on death.");
     Assert(chooser.Descriptor.ConflictTags.Contains("skill-assignment-replacement"),
         "ChooseOneOfThree must replace its runtime assignment.");
     Assert(new PluginConfig().ChooseCarnivalSkillId == "ChooseOneOfThree",
         "ChooseCarnival must force the completed chooser skill by default.");
+}
+
+static void CheckChoiceReservationCapacity()
+{
+    Assert(SkillManager.HasServerCapacity(-1, 100, 100, 100),
+        "Unlimited skills must ignore active, selected and reserved counts.");
+    Assert(SkillManager.HasServerCapacity(2, 0, 0, 1),
+        "A two-holder skill must remain available after the first menu reserves it.");
+    Assert(!SkillManager.HasServerCapacity(1, 0, 0, 1),
+        "A MaxPerServer=1 skill reserved in A's menu must not appear in B's pool.");
+    Assert(!SkillManager.HasServerCapacity(2, 1, 0, 1),
+        "Active holders and pending menu reservations must share the same capacity.");
 }
 
 static void CheckRangeFinderDescriptor()
@@ -563,6 +774,25 @@ static void CheckFrozenDecoyRouting()
         "FrozenDecoy must replenish its configured decoy charges after throws.");
 }
 
+static void CheckMagneticDecoyRouting()
+{
+    var settings = new MagneticDecoySettings();
+    var magneticDecoy = new MagneticDecoySkill(settings);
+    Assert(magneticDecoy is ITickSkill
+           && magneticDecoy is IDecoyStartedSkill
+           && magneticDecoy is IDecoyDetonateSkill
+           && magneticDecoy is IGrenadeThrownSkill,
+        "MagneticDecoy must consume tick, active-decoy, and grenade-charge routes.");
+    Assert(magneticDecoy.Descriptor.Kind == SkillKind.Passive
+           && magneticDecoy.Descriptor.Rarity == SkillRarity.Common
+           && magneticDecoy.Descriptor.ConflictTags.Contains("decoy-behavior-control"),
+        "MagneticDecoy must be a common passive decoy controller.");
+    Assert(settings.TriggerRadius == 180.0f
+           && settings.Strength == 30.0f
+           && settings.GrenadeLimit == 3,
+        "MagneticDecoy must preserve the reference attraction defaults.");
+}
+
 static void CheckDecoyXRayDescriptor()
 {
     var skill = new DecoyXRaySkill(new DecoyXRaySettings(), null!);
@@ -720,6 +950,95 @@ static void CheckHealingSmokeRouting()
            && settings.Replenishments == 1
            && settings.SoundVolume == 0.50f,
         "HealingSmoke must preserve the requested and reference defaults.");
+}
+
+static void CheckPyroRouting()
+{
+    var settings = new PyroSettings();
+    var pyro = new PyroSkill(settings);
+    Assert(pyro is IPlayerHurtSkill && pyro is IGrenadeThrownSkill,
+        "Pyro must consume victim hurt and fire-grenade throw callbacks.");
+    Assert(pyro.Descriptor.Kind == SkillKind.Passive
+           && pyro.Descriptor.Rarity == SkillRarity.Common
+           && pyro.Descriptor.ConflictTags.Contains("inferno-damage-control"),
+        "Pyro must be a common passive inferno-damage controller.");
+    Assert(settings.RegenerationMultiplier == 1.5f && settings.GrenadeLimit == 2,
+        "Pyro must preserve jRandomSkills' healing multiplier and grenade limit defaults.");
+}
+
+static void CheckRichBoyDescriptor()
+{
+    var settings = new RichBoySettings();
+    var richBoy = new RichBoySkill(settings);
+    Assert(richBoy.Descriptor.Kind == SkillKind.Passive
+           && richBoy.Descriptor.Rarity == SkillRarity.Common
+           && richBoy.Descriptor.ConflictTags.Contains("money-bonus"),
+        "RichBoy must be a common passive persistent economy bonus.");
+    Assert(richBoy.Descriptor.IncompatibleEventIds.Contains("Bankruptcy"),
+        "RichBoy must not be assigned during the global bankruptcy event.");
+    Assert(settings.MinimumMoney == 5000 && settings.MaximumMoney == 15000,
+        "RichBoy must preserve the requested reference bonus range.");
+}
+
+static void CheckThornsDescriptor()
+{
+    var settings = new ThornsSettings();
+    var thorns = new ThornsSkill(settings);
+    Assert(thorns is IPlayerHurtSkill
+           && thorns.Descriptor.Kind == SkillKind.Passive
+           && thorns.Descriptor.Rarity == SkillRarity.Common,
+        "Thorns must be a common passive player-hurt consumer.");
+    Assert(settings.DamageScale == 0.30f
+           && settings.MaximumDamagePerHit == 37
+           && settings.SoundVolume == 0.35f,
+        "Thorns must preserve jRandomSkills' reflection defaults.");
+    Assert(ThornsSkill.CalculateReflectedDamage(100, settings.DamageScale, settings.MaximumDamagePerHit) == 30
+           && ThornsSkill.CalculateReflectedDamage(200, settings.DamageScale, settings.MaximumDamagePerHit) == 37
+           && ThornsSkill.CalculateReflectedDamage(1, settings.DamageScale, settings.MaximumDamagePerHit) == 0,
+        "Thorns must truncate scaled damage and enforce its per-hit cap.");
+}
+
+static void CheckGrenadierDescriptor()
+{
+    var grenadier = new GrenadierSkill();
+    Assert(grenadier is IGrenadeThrownSkill
+           && grenadier.Descriptor.Kind == SkillKind.Passive
+           && grenadier.Descriptor.Rarity == SkillRarity.Common,
+        "Grenadier must be a common passive grenade-throw consumer.");
+    Assert(grenadier.Descriptor.ConflictTags.Contains("weapon-ammo-control")
+           && grenadier.Descriptor.ConflictTags.Contains("hegrenade-behavior-control"),
+        "Grenadier must conflict with redundant ammo and HE behavior controllers.");
+    var deadlyGrenades = new DeadlyGrenadesEvent(new DeadlyGrenadesSettings());
+    Assert(deadlyGrenades.Descriptor.BlockedSkillTags.Overlaps(grenadier.Descriptor.ConflictTags),
+        "DeadlyGrenades must block the redundant personal Grenadier skill.");
+}
+
+static void CheckNinjaDescriptor()
+{
+    var settings = new NinjaSettings();
+    var ninja = new NinjaSkill(settings, null!);
+    Assert(ninja is ITickSkill
+           && ninja.Descriptor.Kind == SkillKind.Passive
+           && ninja.Descriptor.Rarity == SkillRarity.Common,
+        "Ninja must dynamically update as a common passive skill.");
+    Assert(settings.IdleInvisibility == 0.33f
+           && settings.CrouchInvisibility == 0.33f
+           && settings.KnifeInvisibility == 0.33f,
+        "Ninja must preserve the requested thirty-three-percent contributions.");
+    Assert(Math.Abs(NinjaSkill.CalculateInvisibility(true, false, false, settings) - 0.33f) < 0.001f
+           && Math.Abs(NinjaSkill.CalculateInvisibility(true, true, false, settings) - 0.66f) < 0.001f
+           && Math.Abs(NinjaSkill.CalculateInvisibility(true, true, true, settings) - 0.99f) < 0.001f,
+        "Ninja must add its idle, crouch and knife contributions.");
+    Assert(NinjaSkill.CalculateInvisibility(true, true, true, settings)
+           >= NinjaVisibilityService.FullInvisibilityThreshold,
+        "All three Ninja conditions must cross the full network-concealment threshold.");
+    Assert(NinjaSkill.IsKnife("weapon_knife")
+           && NinjaSkill.IsKnife("weapon_bayonet")
+           && !NinjaSkill.IsKnife("weapon_ak47"),
+        "Ninja must recognize knife and bayonet designer names only.");
+    Assert(ninja.Descriptor.ConflictTags.Contains("player-visibility-control")
+           && ninja.Descriptor.ConflictTags.Contains("player-render-color-control"),
+        "Ninja must conflict with other visibility and render owners.");
 }
 
 static void CheckPilotRouting()
@@ -904,6 +1223,58 @@ static void CheckChickenRouting()
         "Chicken must declare ownership of player model and movement speed.");
 }
 
+static void CheckHealingChickenDescriptor()
+{
+    var settings = new HealingChickenSettings();
+    var healingChicken = new HealingChickenSkill(null!);
+    Assert(healingChicken is ITickSkill && healingChicken is IPlayerDeathSkill,
+        "HealingChicken must heal on tick and remove companions when its owner dies.");
+    Assert(healingChicken.Descriptor.Kind == SkillKind.Passive
+           && healingChicken.Descriptor.Rarity == SkillRarity.Legendary
+           && healingChicken.Descriptor.MaxPerServer == 1,
+        "HealingChicken must be a server-limited legendary passive skill.");
+    Assert(settings.Amount == 3
+           && settings.HealPerTick == 2
+           && settings.HealIntervalSeconds == 0.25f
+           && settings.HealRadius == 150.0f
+           && settings.ChickenHealth == 50,
+        "HealingChicken must preserve the reference spawn, healing, radius and health defaults.");
+}
+
+static void CheckFindThemDescriptor()
+{
+    var settings = new FindThemSettings();
+    var findThem = new FindThemSkill(settings, null!);
+    Assert(findThem is ITickSkill && findThem is IPlayerDeathSkill,
+        "FindThem must maintain target handles and clean its scouts when the holder dies.");
+    Assert(findThem.Descriptor.Kind == SkillKind.Active
+           && findThem.Descriptor.Rarity == SkillRarity.Rare
+           && findThem.Descriptor.MaxPerServer == 1
+           && findThem.Descriptor.CooldownSeconds == 30.0f,
+        "FindThem must be a server-limited rare active skill with a 30-second cooldown.");
+    Assert(settings.ChickenHealth == 30 && settings.SpawnRadius == 48.0f,
+        "FindThem must preserve the scout chicken health and spawn-radius defaults.");
+}
+
+static void CheckKamikazeChickenDescriptor()
+{
+    var settings = new KamikazeChickenSettings();
+    var skill = new KamikazeChickenSkill(settings, null!);
+    Assert(skill is ITickSkill && skill is IPlayerDeathSkill,
+        "KamikazeChicken must maintain its target and clean the chicken when its holder dies.");
+    Assert(skill.Descriptor.Kind == SkillKind.Active
+           && skill.Descriptor.Rarity == SkillRarity.Rare
+           && skill.Descriptor.MaxPerServer == 1
+           && skill.Descriptor.CooldownSeconds == 30.0f,
+        "KamikazeChicken must be a server-limited rare active skill with a 30-second cooldown.");
+    Assert(settings.ModelScale == 1.35f
+           && settings.SpeedMultiplier == 1.20f
+           && settings.DetonationDistance == 120.0f
+           && settings.ExplosionDamage == 100.0f
+           && settings.ExplosionRadius == 350.0f,
+        "KamikazeChicken must preserve its scale, speed, proximity and explosion defaults.");
+}
+
 static void CheckFlashJumpRouting()
 {
     var flashJump = new FlashJumpSkill(new FlashJumpSettings());
@@ -942,6 +1313,60 @@ static void CheckKillInvincibilityRouting()
         "KillInvincibility must expire and notify through the tick pipeline.");
     Assert(invincibility.Descriptor.Rarity == SkillRarity.Common,
         "KillInvincibility must use the common rarity.");
+}
+
+static void CheckSilentDescriptor()
+{
+    var silent = new SilentSkill();
+    Assert(silent.Descriptor.Kind == SkillKind.Passive
+           && silent.Descriptor.Rarity == SkillRarity.Common
+           && silent.Descriptor.DefaultWeight == 10,
+        "Silent must preserve the reference common passive rules.");
+    Assert(SilentSoundService.SoundEventMessageId == 208,
+        "Silent must hook the reference SosStartSoundEvent message.");
+    Assert(SilentSoundService.IsMutedSoundEvent(3109879199)
+           && SilentSoundService.IsMutedSoundEvent(2551626319)
+           && !SilentSoundService.IsMutedSoundEvent(1),
+        "Silent must preserve the reference movement sound hash sets without muting unrelated sounds.");
+}
+
+static void CheckFalconEyeDescriptor()
+{
+    var settings = new FalconEyeSettings();
+    var falconEye = new FalconEyeSkill(null!);
+    Assert(falconEye is ITickSkill,
+        "FalconEye must update its overhead camera through the tick pipeline.");
+    Assert(falconEye.Descriptor.Kind == SkillKind.Active
+           && falconEye.Descriptor.Rarity == SkillRarity.Common
+           && falconEye.Descriptor.CooldownSeconds == 0.0f,
+        "FalconEye must be a zero-cooldown common active skill.");
+    Assert(falconEye.Descriptor.ConflictTags.Contains("camera-view-control"),
+        "FalconEye must declare ownership of the player camera.");
+    Assert(settings.Distance == 1000.0f
+           && FalconEyeService.CameraModel == "models/sprays/spray_plane.vmdl",
+        "FalconEye must preserve the reference camera distance and model.");
+}
+
+static void CheckCypherDescriptor()
+{
+    var settings = new CypherSettings();
+    var cypher = new CypherSkill(null!);
+    Assert(cypher is ITickSkill && cypher is IPlayerDeathSkill,
+        "Cypher must update and clean its deployed camera through lifecycle callbacks.");
+    Assert(cypher.Descriptor.Kind == SkillKind.Active
+           && cypher.Descriptor.Rarity == SkillRarity.Common
+           && cypher.Descriptor.CooldownSeconds == 0.0f,
+        "Cypher camera switching must bypass the framework-wide activation cooldown.");
+    Assert(settings.DeployCooldownSeconds == 30.0f
+           && settings.MaximumDistance == 4096.0f
+           && settings.SurfaceOffset == 8.0f
+           && settings.ViewOffset == 25.0f,
+        "Cypher must preserve the reference deployment defaults.");
+    Assert(cypher.Descriptor.ConflictTags.Contains("camera-view-control"),
+        "Cypher must conflict with other player camera owners.");
+    Assert(CypherCameraService.CameraPropModel.EndsWith("security_camera_01.vmdl", StringComparison.Ordinal)
+           && CypherCameraService.CameraViewModel == "models/sprays/spray_plane.vmdl",
+        "Cypher must preserve the reference physical and view camera models.");
 }
 
 static void CheckGodModeDescriptor()
@@ -1058,6 +1483,24 @@ static void CheckMagnifierDescriptor()
     Assert(magnifier.Descriptor.ConflictTags.Contains("targeted-vision-debuff")
            && magnifier.Descriptor.ConflictTags.Contains("player-fov-control"),
         "Magnifier must declare targeted vision and FOV ownership conflicts.");
+}
+
+static void CheckTrackerDescriptor()
+{
+    var settings = new TrackerSettings();
+    var tracker = new TrackerSkill(null!);
+    Assert(tracker.Descriptor.Kind == SkillKind.Active
+           && tracker.Descriptor.Rarity == SkillRarity.Common
+           && tracker.Descriptor.CooldownSeconds == 0.0f
+           && tracker.Descriptor.MaxPerServer == 1,
+        "Tracker must be a one-use common active skill limited to one holder.");
+    Assert(tracker is IPlayerDeathSkill,
+        "Tracker must remove the trail when its selected target dies.");
+    Assert(settings.ParticleName == "particles/ui/hud/ui_map_def_utility_trail.vpcf",
+        "Tracker must preserve the reference utility-trail particle.");
+    Assert(tracker.Descriptor.ConflictTags.Contains("targeted-tracking-visual")
+           && tracker.Descriptor.ConflictTags.Contains("particle-trail-control"),
+        "Tracker must declare targeted tracking and particle-trail ownership.");
 }
 
 static void CheckHomingNadesDescriptor()
@@ -1248,6 +1691,19 @@ static void CheckJammerDescriptor()
         "Jammer must restore the crosshair when its target dies.");
     Assert(CrosshairSuppressionService.CrosshairHideHudBit == 1u << 8,
         "Jammer must use CS2's crosshair bit in m_iHideHUD.");
+}
+
+static void CheckDeafDescriptor()
+{
+    var deaf = new DeafSkill(null!);
+    Assert(deaf.Descriptor.Kind == SkillKind.Active
+           && deaf.Descriptor.Rarity == SkillRarity.Common
+           && deaf.Descriptor.CooldownSeconds == 0.0f,
+        "Deaf must preserve jRandomSkills' one-use common active-skill behavior.");
+    Assert(deaf is IPlayerDeathSkill,
+        "Deaf must release a selected target when that target dies.");
+    Assert(DeafSoundService.SoundEventMessageId == 208,
+        "Deaf must filter CS2's server sound-event user message 208.");
 }
 
 static void CheckIlliterateScramble()

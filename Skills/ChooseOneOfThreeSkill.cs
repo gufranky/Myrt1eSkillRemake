@@ -4,12 +4,13 @@ using Myrt1eSkill_Remake.Core;
 
 namespace Myrt1eSkill_Remake.Skills;
 
-public sealed class ChooseOneOfThreeSkill : ISkill
+public sealed class ChooseOneOfThreeSkill : ISkill, IPlayerDeathSkill
 {
     private const int ChoiceCount = 3;
 
     private sealed class ChoiceState
     {
+        public string ReservationOwner { get; } = $"ChooseOneOfThree:{Guid.NewGuid():N}";
         public HashSet<string>? OfferedSkillIds { get; set; }
         public bool Revoked { get; set; }
     }
@@ -31,7 +32,11 @@ public sealed class ChooseOneOfThreeSkill : ISkill
 
     public void OnGranted(in SkillContext context)
     {
-        context.State.Set(new ChoiceState());
+        var state = new ChoiceState();
+        var runtimeSkills = context.Plugin.RuntimeSkills;
+        context.State.Set(state);
+        context.Effects.RegisterCleanup(() =>
+            runtimeSkills.ReleaseSkillChoiceReservations(state.ReservationOwner));
     }
 
     public void OnActivated(in SkillContext context)
@@ -46,7 +51,11 @@ public sealed class ChooseOneOfThreeSkill : ISkill
         IReadOnlyList<SkillDescriptor> choices;
         if (state.OfferedSkillIds is null)
         {
-            choices = plugin.RuntimeSkills.DrawSkillChoices(player, ChoiceCount, Descriptor.Id);
+            choices = plugin.RuntimeSkills.DrawSkillChoices(
+                player,
+                ChoiceCount,
+                state.ReservationOwner,
+                Descriptor.Id);
             if (choices.Count < ChoiceCount)
             {
                 PluginText.Chat(player, "[三选一] 当前可用技能不足三个。");
@@ -92,8 +101,22 @@ public sealed class ChooseOneOfThreeSkill : ISkill
         if (context.State.TryGet<ChoiceState>(out var state))
         {
             state.Revoked = true;
+            context.Plugin.RuntimeSkills.ReleaseSkillChoiceReservations(state.ReservationOwner);
         }
 
+        MenuManager.CloseActiveMenu(context.Player);
+    }
+
+    public void OnPlayerDeath(in SkillContext context, EventPlayerDeath @event)
+    {
+        if (@event.Userid?.Index != context.Player.Index
+            || !context.State.TryGet<ChoiceState>(out var state))
+        {
+            return;
+        }
+
+        context.Plugin.RuntimeSkills.ReleaseSkillChoiceReservations(state.ReservationOwner);
+        state.OfferedSkillIds = null;
         MenuManager.CloseActiveMenu(context.Player);
     }
 

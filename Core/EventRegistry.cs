@@ -10,7 +10,10 @@ public sealed class EventRegistry
     public int Count => _events.Count;
     public IReadOnlyCollection<IRoundEvent> All => _events.Values;
 
-    public static EventRegistry CreateDefault(PluginConfig config, WallhackService wallhack)
+    public static EventRegistry CreateDefault(
+        PluginConfig config,
+        WallhackService wallhack,
+        DeafSoundService deafSounds)
     {
         var registry = new EventRegistry();
         registry.Register(new NormalRoundEvent());
@@ -36,6 +39,11 @@ public sealed class EventRegistry
         registry.Register(new UnluckyCouplesEvent(config.UnluckyCouples, wallhack));
         registry.Register(new SuperKnockbackEvent(config.SuperKnockback));
         registry.Register(new SuperRecoilEvent(config.SuperRecoil));
+        registry.Register(new InaccurateEvent(config.Inaccurate));
+        registry.Register(new SilentWorldEvent(deafSounds));
+        registry.Register(new AnywhereBombPlantEvent());
+        registry.Register(new KillerSatelliteEvent());
+        registry.Register(new SkillMasterEvent());
         registry.Register(new SuperpowerXrayEvent(wallhack));
         registry.Register(new XrayEvent(wallhack));
         registry.Register(new TopTierPartyEvent());

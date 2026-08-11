@@ -1,5 +1,6 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes;
+using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
 using Microsoft.Extensions.Logging;
 using Myrt1eSkill_Remake.Configuration;
@@ -11,7 +12,7 @@ namespace Myrt1eSkill_Remake;
 public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginConfig>
 {
     public override string ModuleName => "Myrt1eSkill_Remake";
-    public override string ModuleVersion => "0.44.0-dev";
+    public override string ModuleVersion => "0.51.0-dev";
     public override string ModuleAuthor => "gufranky and contributors";
     public override string ModuleDescription => "A modular random-skill entertainment plugin for CS2.";
 
@@ -43,14 +44,25 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private SpectatorCameraService _spectator = null!;
     private IlliterateService _illiterate = null!;
     private ThirdEyeService _thirdEye = null!;
+    private FalconEyeService _falconEye = null!;
+    private CypherCameraService _cypher = null!;
     private ReviveService _revives = null!;
     private GhostService _ghosts = null!;
     private ChickenService _chickens = null!;
+    private HealingChickenService _healingChickens = null!;
+    private FindThemService _findThem = null!;
+    private KamikazeChickenService _kamikazeChickens = null!;
     private GlazService _glaz = null!;
     private HolyHandGrenadeService _holyHandGrenades = null!;
     private RoundPresentationService _presentation = null!;
     private CrosshairSuppressionService _crosshairs = null!;
+    private DeafSoundService _deafSounds = null!;
     private FieldOfViewService _fieldOfView = null!;
+    private TrackerTrailService _tracker = null!;
+    private SilentSoundService _silentSounds = null!;
+    private MindHackService _mindHack = null!;
+    private NavMeshService _navMesh = null!;
+    private NinjaVisibilityService _ninjaVisibility = null!;
 
     internal SkillManager RuntimeSkills => _skillManager;
     internal RoundPresentationService RuntimePresentation => _presentation;
@@ -62,6 +74,8 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
 
     public override void Load(bool hotReload)
     {
+        _navMesh = new NavMeshService(this);
+        _navMesh.Load();
         _explosions = new ExplosiveProjectileService(this, Config.ExplosiveShot);
         _explosions.Load();
         _barrels = new ExplodingBarrelService(this, Config.ExplodingBarrel, _explosions);
@@ -92,15 +106,30 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _illiterate = new IlliterateService();
         _thirdEye = new ThirdEyeService(this, Config.ThirdEye);
         _thirdEye.Load();
+        _falconEye = new FalconEyeService(this, Config.FalconEye);
+        _falconEye.Load();
+        _cypher = new CypherCameraService(this, Config.Cypher, _playerView);
+        _cypher.Load();
         _revives = new ReviveService();
         _ghosts = new GhostService();
         _chickens = new ChickenService(this, Config.Chicken);
         _chickens.Load();
+        _healingChickens = new HealingChickenService(this, Config.HealingChicken);
+        _healingChickens.Load();
+        _findThem = new FindThemService(Config.FindThem);
+        _kamikazeChickens = new KamikazeChickenService(Config.KamikazeChicken, _explosions);
         _glaz = new GlazService();
         _holyHandGrenades = new HolyHandGrenadeService(this, Config.HolyHandGrenade);
         _holyHandGrenades.Load();
         _crosshairs = new CrosshairSuppressionService();
+        _deafSounds = new DeafSoundService(this);
+        _deafSounds.Load();
         _fieldOfView = new FieldOfViewService();
+        _tracker = new TrackerTrailService(this, Config.Tracker);
+        _tracker.Load();
+        _mindHack = new MindHackService(this);
+        _mindHack.Load();
+        _ninjaVisibility = new NinjaVisibilityService();
         PluginText.Configure(_illiterate);
         _registry = SkillRegistry.CreateDefault(
             Config,
@@ -123,20 +152,31 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _spectator,
             _illiterate,
             _thirdEye,
+            _falconEye,
+            _cypher,
             _revives,
             _ghosts,
             _chickens,
+            _healingChickens,
+            _findThem,
+            _kamikazeChickens,
             _glaz,
             _holyHandGrenades,
             _crosshairs,
-            _fieldOfView);
-        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack);
+            _deafSounds,
+            _fieldOfView,
+            _tracker,
+            _mindHack,
+            _ninjaVisibility);
+        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds);
         var performance = new PerformanceMonitor(this);
         _skillManager = new SkillManager(this, _registry, performance);
+        _silentSounds = new SilentSoundService(this, _skillManager);
+        _silentSounds.Load();
         _roundEventManager = new RoundEventManager(this, _eventRegistry, performance);
         _presentation = new RoundPresentationService(this, _skillManager);
         _roundCoordinator = new RoundCoordinator(this, _skillManager, _roundEventManager, _presentation);
-        _eventRouter = new SkillEventRouter(this, _skillManager, _roundEventManager, _wallhack, _nightmare, _darkness, _illiterate, _ghosts, _chickens, _glaz, _presentation, _crosshairs);
+        _eventRouter = new SkillEventRouter(this, _skillManager, _roundEventManager, _wallhack, _nightmare, _darkness, _illiterate, _ghosts, _chickens, _glaz, _presentation, _crosshairs, _tracker, _ninjaVisibility);
         _damageEventRouter = new DamageEventRouter(this, _skillManager, _explosions, _roundEventManager);
         _damageEventRouter.Load();
 
@@ -172,6 +212,8 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         AddCommand("css_rskill_status", "Show random-skill plugin status", OnStatusCommand);
         AddCommand("css_useskill", "Activate your current active skill", OnUseSkillCommand);
         AddCommand("css_forceevent", "Force the next round event from server console", OnForceEventCommand);
+        AddCommand("css_nav_status", "Show current static NavMesh load status", OnNavStatusCommand);
+        AddCommand("css_nav_randomtp", "Admin test: safely teleport yourself to a random reachable NAV area", OnNavRandomTeleportCommand);
 
         Logger.LogInformation(
             "{Plugin} loaded ({SkillCount} registered skills, hotReload={HotReload})",
@@ -182,6 +224,8 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
 
     public override void Unload(bool hotReload)
     {
+        _navMesh?.Unload();
+        _silentSounds?.Unload();
         _damageEventRouter?.Unload();
         _noRecoil?.Reset();
         _bombMiner?.Unload();
@@ -204,11 +248,20 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _homingGrenades?.Unload();
         _spectator?.Unload();
         _thirdEye?.Unload();
+        _falconEye?.Unload();
+        _cypher?.Unload();
         _ghosts?.Dispose();
         _chickens?.Dispose();
+        _healingChickens?.Dispose();
+        _findThem?.Dispose();
+        _kamikazeChickens?.Dispose();
         _glaz?.Dispose();
         _crosshairs?.Dispose();
+        _deafSounds?.Unload();
         _fieldOfView?.Dispose();
+        _tracker?.Unload();
+        _mindHack?.Unload();
+        _ninjaVisibility?.Dispose();
         PluginText.Reset();
         Logger.LogInformation("{Plugin} unloaded (hotReload={HotReload})", ModuleName, hotReload);
     }
@@ -251,5 +304,36 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         command.ReplyToCommand(_roundEventManager.ForceNextEvent(eventId)
             ? $"[Myrt1eSkill_Remake] Next round event forced to {eventId}."
             : $"[Myrt1eSkill_Remake] Unknown event: {eventId}.");
+    }
+
+    private void OnNavStatusCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        var source = string.IsNullOrWhiteSpace(_navMesh.Source) ? "-" : _navMesh.Source;
+        var error = string.IsNullOrWhiteSpace(_navMesh.LastError) ? "-" : _navMesh.LastError;
+        command.ReplyToCommand(
+            $"[Myrt1eSkill_Remake] navReady={_navMesh.IsReady}, map={_navMesh.MapName}, areas={_navMesh.AreaCount}, source={source}, error={error}");
+    }
+
+    private void OnNavRandomTeleportCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player is null)
+        {
+            command.ReplyToCommand("This command must be used by an in-game admin.");
+            return;
+        }
+
+        if (player.IsBot || !AdminManager.PlayerHasPermissions(player, "@css/generic"))
+        {
+            command.ReplyToCommand("[Myrt1eSkill_Remake] You do not have permission to test NavMesh teleport.");
+            return;
+        }
+
+        if (!_navMesh.TryTeleportRandom(player, out var failure))
+        {
+            command.ReplyToCommand($"[Myrt1eSkill_Remake] NavMesh teleport failed: {failure}");
+            return;
+        }
+
+        command.ReplyToCommand("[Myrt1eSkill_Remake] Safe NavMesh teleport completed.");
     }
 }

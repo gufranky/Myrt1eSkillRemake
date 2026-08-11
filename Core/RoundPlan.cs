@@ -10,11 +10,18 @@ public enum ForcedSkillMode
     PoolOnly
 }
 
+public enum SkillAssignmentMode
+{
+    AllPlayers,
+    OneRandomPlayerPerTeam
+}
+
 public sealed record SkillPlan
 {
     public required bool Enabled { get; init; }
     public required int SlotsPerPlayer { get; init; }
     public required int MaxActiveSkillsPerPlayer { get; init; }
+    public required SkillAssignmentMode AssignmentMode { get; init; }
     public required ForcedSkillMode ForcedMode { get; init; }
     public required IReadOnlyList<string> ForcedSkillIds { get; init; }
     public required IReadOnlySet<string> BlockedSkillIds { get; init; }
@@ -38,6 +45,7 @@ public sealed class RoundPlanBuilder
     private bool _skillsEnabled;
     private int _requiredSlots;
     private ForcedSkillMode _forcedMode;
+    private SkillAssignmentMode _assignmentMode;
 
     public RoundPlanBuilder(PluginConfig config)
     {
@@ -65,6 +73,12 @@ public sealed class RoundPlanBuilder
     public void RequireSkillSlots(int totalSlots)
     {
         _requiredSlots = Math.Max(_requiredSlots, totalSlots);
+    }
+
+    public void AssignOneRandomPlayerPerTeam(int skillCount)
+    {
+        _assignmentMode = SkillAssignmentMode.OneRandomPlayerPerTeam;
+        _requiredSlots = Math.Max(_requiredSlots, Math.Clamp(skillCount, 0, 8));
     }
 
     public void ReplaceAllSkills(params string[] skillIds)
@@ -100,7 +114,10 @@ public sealed class RoundPlanBuilder
 
     public RoundPlan Build()
     {
-        var maxSlots = Math.Clamp(_config.MaxSkillsPerPlayer, 0, 8);
+        var configuredMaxSlots = Math.Clamp(_config.MaxSkillsPerPlayer, 0, 8);
+        var maxSlots = _assignmentMode == SkillAssignmentMode.OneRandomPlayerPerTeam
+            ? Math.Max(configuredMaxSlots, Math.Clamp(_requiredSlots, 0, 8))
+            : configuredMaxSlots;
         var slots = Math.Clamp(_requiredSlots, 0, maxSlots);
         var forcedMode = _skillsEnabled ? _forcedMode : ForcedSkillMode.None;
         var forcedSkills = _skillsEnabled ? _forcedSkills.ToArray() : Array.Empty<string>();
@@ -122,6 +139,7 @@ public sealed class RoundPlanBuilder
                 Enabled = _skillsEnabled && slots > 0,
                 SlotsPerPlayer = slots,
                 MaxActiveSkillsPerPlayer = Math.Clamp(_config.MaxActiveSkillsPerPlayer, 0, maxSlots),
+                AssignmentMode = _assignmentMode,
                 ForcedMode = forcedMode,
                 ForcedSkillIds = forcedSkills,
                 BlockedSkillIds = new HashSet<string>(_blockedSkillIds, StringComparer.OrdinalIgnoreCase),
@@ -138,4 +156,3 @@ public sealed class RoundPlanBuilder
         _forcedSkills.UnionWith(skillIds.Where(id => !string.IsNullOrWhiteSpace(id)));
     }
 }
-

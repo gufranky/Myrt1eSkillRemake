@@ -21,6 +21,8 @@ public sealed class SkillEventRouter
     private readonly GlazService _glaz;
     private readonly RoundPresentationService _presentation;
     private readonly CrosshairSuppressionService _crosshairs;
+    private readonly TrackerTrailService _tracker;
+    private readonly NinjaVisibilityService _ninjaVisibility;
 
     public SkillEventRouter(
         Myrt1eSkillRemakePlugin plugin,
@@ -34,7 +36,9 @@ public sealed class SkillEventRouter
         ChickenService chickens,
         GlazService glaz,
         RoundPresentationService presentation,
-        CrosshairSuppressionService crosshairs)
+        CrosshairSuppressionService crosshairs,
+        TrackerTrailService tracker,
+        NinjaVisibilityService ninjaVisibility)
     {
         _plugin = plugin;
         _skills = skills;
@@ -48,6 +52,8 @@ public sealed class SkillEventRouter
         _glaz = glaz;
         _presentation = presentation;
         _crosshairs = crosshairs;
+        _tracker = tracker;
+        _ninjaVisibility = ninjaVisibility;
     }
 
     public HookResult OnPlayerHurt(EventPlayerHurt @event, GameEventInfo info)
@@ -274,6 +280,8 @@ public sealed class SkillEventRouter
         _chickens.OnCheckTransmit(infoList);
         _glaz.OnCheckTransmit(infoList);
         _nightmare.OnCheckTransmit(infoList);
+        _tracker.OnCheckTransmit(infoList);
+        _ninjaVisibility.OnCheckTransmit(infoList);
         _events.Dispatch<IRoundEventCheckTransmit>(
             "CheckTransmit.ActiveEvents",
             (handler, context) => handler.OnCheckTransmit(context, infoList));

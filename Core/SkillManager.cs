@@ -13,6 +13,8 @@ public sealed class SkillManager
     private readonly SkillRegistry _registry;
     private readonly PerformanceMonitor _performance;
     private readonly Dictionary<int, PlayerSession> _sessions = new();
+    private readonly Dictionary<string, HashSet<string>> _choiceReservations =
+        new(StringComparer.Ordinal);
     private SkillPlan? _currentPlan;
 
     public int AssignedPlayerCount => _sessions.Values.Count(session => session.Assignments.Count > 0);
@@ -30,6 +32,84 @@ public sealed class SkillManager
 
     public SkillDescriptor? TryGetDescriptor(string skillId) =>
         _registry.TryGet(skillId, out var skill) ? skill?.Descriptor : null;
+
+    public IReadOnlyList<SkillDescriptor> InheritSkillsFromPlayer(
+        CCSPlayerController inheritor,
+        CCSPlayerController deceased,
+        string sourceSkillId,
+        int maximumSkillCount,
+        out int totalSkillCount)
+    {
+        totalSkillCount = 0;
+        if (!inheritor.IsValid
+            || !inheritor.PawnIsAlive
+            || !deceased.IsValid
+            || inheritor.Index == deceased.Index
+            || maximumSkillCount <= 0
+            || !_sessions.TryGetValue(inheritor.Slot, out var inheritorSession)
+            || !inheritorSession.Matches(inheritor)
+            || !inheritorSession.Assignments.Any(assignment =>
+                assignment.Skill.Descriptor.Id.Equals(sourceSkillId, StringComparison.OrdinalIgnoreCase))
+            || !_sessions.TryGetValue(deceased.Slot, out var deceasedSession)
+            || !deceasedSession.Matches(deceased))
+        {
+            return Array.Empty<SkillDescriptor>();
+        }
+
+        totalSkillCount = inheritorSession.Assignments.Count;
+        if (totalSkillCount >= maximumSkillCount)
+        {
+            return Array.Empty<SkillDescriptor>();
+        }
+
+        var inherited = new List<SkillDescriptor>();
+        var existingIds = inheritorSession.Assignments
+            .Select(assignment => assignment.Skill.Descriptor.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var usedTags = inheritorSession.Assignments
+            .SelectMany(assignment => assignment.Skill.Descriptor.ConflictTags)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hasActiveSkill = inheritorSession.Assignments.Any(assignment =>
+            assignment.Skill.Descriptor.Kind == SkillKind.Active);
+        var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
+        var candidates = deceasedSession.Assignments
+            .Select(assignment => assignment.Skill)
+            .ToArray();
+
+        foreach (var skill in candidates)
+        {
+            if (inheritorSession.Assignments.Count >= maximumSkillCount)
+            {
+                break;
+            }
+
+            var descriptor = skill.Descriptor;
+            if (existingIds.Contains(descriptor.Id)
+                || descriptor.ConflictTags.Overlaps(usedTags)
+                || (descriptor.Kind == SkillKind.Active && hasActiveSkill)
+                || !CanGrantRuntimeSkill(
+                    skill,
+                    inheritor,
+                    eligiblePlayers,
+                    ignoreServerLimit: true))
+            {
+                continue;
+            }
+
+            if (!GrantSkill(inheritorSession, inheritor, skill))
+            {
+                continue;
+            }
+
+            inherited.Add(descriptor);
+            existingIds.Add(descriptor.Id);
+            usedTags.UnionWith(descriptor.ConflictTags);
+            hasActiveSkill |= descriptor.Kind == SkillKind.Active;
+        }
+
+        totalSkillCount = inheritorSession.Assignments.Count;
+        return inherited;
+    }
 
     public bool TryDeactivatePlayerSkills(
         CCSPlayerController caster,
@@ -83,12 +163,18 @@ public sealed class SkillManager
     public IReadOnlyList<SkillDescriptor> DrawSkillChoices(
         CCSPlayerController player,
         int count,
+        string reservationOwner,
         params string[] excludedSkillIds)
     {
-        if (!player.IsValid || !player.PawnIsAlive || count <= 0)
+        if (!player.IsValid
+            || !player.PawnIsAlive
+            || count <= 0
+            || string.IsNullOrWhiteSpace(reservationOwner))
         {
             return Array.Empty<SkillDescriptor>();
         }
+
+        ReleaseSkillChoiceReservations(reservationOwner);
 
         var excluded = excludedSkillIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (_sessions.TryGetValue(player.Slot, out var currentSession) && currentSession.Matches(player))
@@ -129,8 +215,33 @@ public sealed class SkillManager
             candidates.Remove(skill);
         }
 
+        // Only a complete menu owns reservations. A failed three-choice draw
+        // must not consume scarce slots without presenting them to the player.
+        if (selected.Count == count)
+        {
+            _choiceReservations[reservationOwner] = selected
+                .Where(skill => GetMaxPerServer(skill) >= 0)
+                .Select(skill => skill.Descriptor.Id)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
         return selected.Select(skill => skill.Descriptor).ToArray();
     }
+
+    public void ReleaseSkillChoiceReservations(string reservationOwner)
+    {
+        if (!string.IsNullOrWhiteSpace(reservationOwner))
+        {
+            _choiceReservations.Remove(reservationOwner);
+        }
+    }
+
+    public static bool HasServerCapacity(
+        int limit,
+        int activeCount,
+        int selectedCount,
+        int reservedCount) =>
+        limit < 0 || activeCount + selectedCount + reservedCount < limit;
 
     public bool TryReplaceWithSkill(
         CCSPlayerController player,
@@ -153,7 +264,14 @@ public sealed class SkillManager
         }
 
         var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
-        if (!CanGrantRuntimeSkill(skill, player, eligiblePlayers))
+        // DrawSkillChoices already applied the server-cap filter before this
+        // skill was shown. Confirmation must honor that offered choice even if
+        // another acquisition fills the cap while the menu remains open.
+        if (!CanGrantRuntimeSkill(
+                skill,
+                player,
+                eligiblePlayers,
+                ignoreServerLimit: true))
         {
             error = $"技能“{skill.Descriptor.DisplayName}”当前不可用。";
             return false;
@@ -263,10 +381,23 @@ public sealed class SkillManager
 
         RevokeAll();
         var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
+        var recipients = plan.AssignmentMode == SkillAssignmentMode.OneRandomPlayerPerTeam
+            ? SelectOneRandomPlayerPerTeam(eligiblePlayers)
+            : eligiblePlayers;
 
-        foreach (var player in eligiblePlayers)
+        foreach (var player in recipients)
         {
             AssignPlayer(player, eligiblePlayers, plan);
+        }
+
+        if (plan.AssignmentMode == SkillAssignmentMode.OneRandomPlayerPerTeam)
+        {
+            foreach (var champion in recipients)
+            {
+                PluginText.ChatAll(
+                    $"[我是达人] ⭐ {champion.PlayerName} 成为 {TeamName(champion.Team)} 达人，获得 {GetAssignedSkills(champion).Count} 个技能！");
+                PluginText.Center(champion, "⭐ 你是本队达人！");
+            }
         }
     }
 
@@ -276,6 +407,8 @@ public sealed class SkillManager
         {
             RevokeSession(session);
         }
+
+        _choiceReservations.Clear();
 
         if (clearSessions)
         {
@@ -438,7 +571,13 @@ public sealed class SkillManager
                     continue;
                 }
 
-                if (!CanSelectSkill(forcedSkill, player, selected, eligiblePlayers, plan))
+                if (!CanSelectSkill(
+                        forcedSkill,
+                        player,
+                        selected,
+                        eligiblePlayers,
+                        plan,
+                        ignoreServerLimit: true))
                 {
                     _plugin.Logger.LogWarning(
                         "Forced skill {SkillId} is incompatible with the resolved round plan for slot {Slot}",
@@ -542,7 +681,8 @@ public sealed class SkillManager
         IReadOnlyCollection<ISkill> selected,
         IReadOnlyCollection<CCSPlayerController> eligiblePlayers,
         SkillPlan plan,
-        IReadOnlySet<string>? usedTags = null)
+        IReadOnlySet<string>? usedTags = null,
+        bool ignoreServerLimit = false)
     {
         if (!IsEnabled(skill) || GetWeight(skill) <= 0)
         {
@@ -570,13 +710,14 @@ public sealed class SkillManager
         }
 
         return IsEligibleForPlayer(skill, player, eligiblePlayers)
-            && IsBelowServerLimit(skill, selected);
+            && (ignoreServerLimit || IsBelowServerLimit(skill, selected));
     }
 
     private bool CanGrantRuntimeSkill(
         ISkill skill,
         CCSPlayerController player,
-        IReadOnlyCollection<CCSPlayerController> eligiblePlayers)
+        IReadOnlyCollection<CCSPlayerController> eligiblePlayers,
+        bool ignoreServerLimit = false)
     {
         if (!IsEnabled(skill) || GetWeight(skill) <= 0)
         {
@@ -590,7 +731,7 @@ public sealed class SkillManager
         }
 
         return IsEligibleForPlayer(skill, player, eligiblePlayers)
-            && IsBelowServerLimit(skill, Array.Empty<ISkill>());
+            && (ignoreServerLimit || IsBelowServerLimit(skill, Array.Empty<ISkill>()));
     }
 
     private bool IsEligibleForPlayer(
@@ -633,7 +774,8 @@ public sealed class SkillManager
             .SelectMany(session => session.Assignments)
             .Count(assignment => assignment.Skill.Descriptor.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         var selectedCount = selected.Count(item => item.Descriptor.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
-        return activeCount + selectedCount < limit;
+        var reservedCount = _choiceReservations.Values.Count(skillIds => skillIds.Contains(id));
+        return HasServerCapacity(limit, activeCount, selectedCount, reservedCount);
     }
 
     private PlayerSession GetOrCreateSession(CCSPlayerController player)
@@ -773,4 +915,27 @@ public sealed class SkillManager
             && player.PawnIsAlive
             && player.Team is CsTeam.Terrorist or CsTeam.CounterTerrorist;
     }
+
+    private static CCSPlayerController[] SelectOneRandomPlayerPerTeam(
+        IReadOnlyCollection<CCSPlayerController> eligiblePlayers)
+    {
+        var selected = new List<CCSPlayerController>(2);
+        foreach (var team in new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist })
+        {
+            var candidates = eligiblePlayers.Where(player => player.Team == team).ToArray();
+            if (candidates.Length > 0)
+            {
+                selected.Add(candidates[Random.Shared.Next(candidates.Length)]);
+            }
+        }
+
+        return selected.ToArray();
+    }
+
+    private static string TeamName(CsTeam team) => team switch
+    {
+        CsTeam.Terrorist => "T 方",
+        CsTeam.CounterTerrorist => "CT 方",
+        _ => "队伍"
+    };
 }

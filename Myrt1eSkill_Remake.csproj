@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="CounterStrikeSharp.API" Version="1.0.371" />
+    <PackageReference Include="ValveResourceFormat" Version="19.2.6339" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,4 +30,22 @@
           CopyToOutputDirectory="PreserveNewest"
           TargetPath="gamedata\Myrt1eSkill_Remake.gamedata.json" />
   </ItemGroup>
+
+  <!-- ValveResourceFormat also supports rendering and exporting, but this plugin
+       only uses its NAV/VPK readers. Copy the small runtime subset instead of
+       shipping hundreds of megabytes of unrelated native rendering assets. -->
+  <Target Name="CopyNavMeshRuntimeAssemblies" AfterTargets="Build">
+    <ItemGroup>
+      <_NavMeshRuntimeAssembly Include="@(ReferencePath)"
+          Condition="'%(ReferencePath.Filename)' == 'ValveResourceFormat'
+                  Or '%(ReferencePath.Filename)' == 'ValvePak'
+                  Or '%(ReferencePath.Filename)' == 'ValveKeyValue'
+                  Or '%(ReferencePath.Filename)' == 'K4os.Compression.LZ4'
+                  Or '%(ReferencePath.Filename)' == 'ZstdSharp'
+                  Or '%(ReferencePath.Filename)' == 'System.IO.Hashing'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_NavMeshRuntimeAssembly)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

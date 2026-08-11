@@ -96,6 +96,27 @@ public sealed class FrozenDecoySettings
     public int GrenadeLimit { get; set; } = 3;
 }
 
+public sealed class BladeMasterSettings
+{
+    [JsonPropertyName("TorsoDeflectionChance")]
+    public float TorsoDeflectionChance { get; set; } = 0.95f;
+
+    [JsonPropertyName("LegDeflectionChance")]
+    public float LegDeflectionChance { get; set; } = 0.70f;
+}
+
+public sealed class MagneticDecoySettings
+{
+    [JsonPropertyName("TriggerRadius")]
+    public float TriggerRadius { get; set; } = 180.0f;
+
+    [JsonPropertyName("Strength")]
+    public float Strength { get; set; } = 30.0f;
+
+    [JsonPropertyName("GrenadeLimit")]
+    public int GrenadeLimit { get; set; } = 3;
+}
+
 public sealed class DarknessSettings
 {
     [JsonPropertyName("R")]
@@ -133,6 +154,36 @@ public sealed class SpectatorSettings
 {
     [JsonPropertyName("Distance")]
     public float Distance { get; set; } = 100.0f;
+}
+
+public sealed class CypherSettings
+{
+    [JsonPropertyName("DeployCooldownSeconds")]
+    public float DeployCooldownSeconds { get; set; } = 30.0f;
+
+    [JsonPropertyName("MaximumDistance")]
+    public float MaximumDistance { get; set; } = 4096.0f;
+
+    [JsonPropertyName("SurfaceOffset")]
+    public float SurfaceOffset { get; set; } = 8.0f;
+
+    [JsonPropertyName("ViewOffset")]
+    public float ViewOffset { get; set; } = 25.0f;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 1.0f;
+}
+
+public sealed class GhoulSettings
+{
+    [JsonPropertyName("MaximumSkills")]
+    public int MaximumSkills { get; set; } = 5;
+}
+
+public sealed class MindHackSettings
+{
+    [JsonPropertyName("DurationSeconds")]
+    public float DurationSeconds { get; set; } = 15.0f;
 }
 
 public sealed class BlastShotSettings
@@ -384,6 +435,48 @@ public sealed class HealingSmokeSettings
     public float SoundVolume { get; set; } = 0.50f;
 }
 
+public sealed class PyroSettings
+{
+    [JsonPropertyName("RegenerationMultiplier")]
+    public float RegenerationMultiplier { get; set; } = 1.5f;
+
+    [JsonPropertyName("GrenadeLimit")]
+    public int GrenadeLimit { get; set; } = 2;
+}
+
+public sealed class RichBoySettings
+{
+    [JsonPropertyName("MinimumMoney")]
+    public int MinimumMoney { get; set; } = 5000;
+
+    [JsonPropertyName("MaximumMoney")]
+    public int MaximumMoney { get; set; } = 15000;
+}
+
+public sealed class ThornsSettings
+{
+    [JsonPropertyName("DamageScale")]
+    public float DamageScale { get; set; } = 0.30f;
+
+    [JsonPropertyName("MaximumDamagePerHit")]
+    public int MaximumDamagePerHit { get; set; } = 37;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 0.35f;
+}
+
+public sealed class NinjaSettings
+{
+    [JsonPropertyName("IdleInvisibility")]
+    public float IdleInvisibility { get; set; } = 0.33f;
+
+    [JsonPropertyName("CrouchInvisibility")]
+    public float CrouchInvisibility { get; set; } = 0.33f;
+
+    [JsonPropertyName("KnifeInvisibility")]
+    public float KnifeInvisibility { get; set; } = 0.33f;
+}
+
 public sealed class PilotSettings
 {
     [JsonPropertyName("MaximumFuel")]
@@ -439,6 +532,12 @@ public sealed class ThirdEyeSettings
 {
     [JsonPropertyName("Distance")]
     public float Distance { get; set; } = 100.0f;
+}
+
+public sealed class FalconEyeSettings
+{
+    [JsonPropertyName("Distance")]
+    public float Distance { get; set; } = 1000.0f;
 }
 
 public sealed class TimeRecallSettings
@@ -537,6 +636,72 @@ public sealed class ChickenSettings
     public float PlayerScale { get; set; } = 0.20f;
 }
 
+public sealed class HealingChickenSettings
+{
+    [JsonPropertyName("Amount")]
+    public int Amount { get; set; } = 3;
+
+    [JsonPropertyName("HealPerTick")]
+    public int HealPerTick { get; set; } = 2;
+
+    [JsonPropertyName("HealIntervalSeconds")]
+    public float HealIntervalSeconds { get; set; } = 0.25f;
+
+    [JsonPropertyName("HealRadius")]
+    public float HealRadius { get; set; } = 150.0f;
+
+    [JsonPropertyName("ChickenHealth")]
+    public int ChickenHealth { get; set; } = 50;
+
+    [JsonPropertyName("SpawnRadius")]
+    public float SpawnRadius { get; set; } = 100.0f;
+
+    [JsonPropertyName("MaximumHealth")]
+    public int MaximumHealth { get; set; }
+}
+
+public sealed class FindThemSettings
+{
+    [JsonPropertyName("CooldownSeconds")]
+    public float CooldownSeconds { get; set; } = 30.0f;
+
+    [JsonPropertyName("ChickenHealth")]
+    public int ChickenHealth { get; set; } = 30;
+
+    [JsonPropertyName("SpawnRadius")]
+    public float SpawnRadius { get; set; } = 48.0f;
+}
+
+public sealed class KamikazeChickenSettings
+{
+    [JsonPropertyName("CooldownSeconds")]
+    public float CooldownSeconds { get; set; } = 30.0f;
+
+    [JsonPropertyName("SpawnDistance")]
+    public float SpawnDistance { get; set; } = 48.0f;
+
+    [JsonPropertyName("ModelScale")]
+    public float ModelScale { get; set; } = 1.35f;
+
+    [JsonPropertyName("SpeedMultiplier")]
+    public float SpeedMultiplier { get; set; } = 1.20f;
+
+    [JsonPropertyName("MaximumSpeed")]
+    public float MaximumSpeed { get; set; } = 180.0f;
+
+    [JsonPropertyName("DetonationDistance")]
+    public float DetonationDistance { get; set; } = 120.0f;
+
+    [JsonPropertyName("ExplosionDamage")]
+    public float ExplosionDamage { get; set; } = 100.0f;
+
+    [JsonPropertyName("ExplosionRadius")]
+    public float ExplosionRadius { get; set; } = 350.0f;
+
+    [JsonPropertyName("TeammateDamageMultiplier")]
+    public float TeammateDamageMultiplier { get; set; } = 0.50f;
+}
+
 public sealed class FlashJumpSettings
 {
     [JsonPropertyName("BaseJumpVelocity")]
@@ -604,6 +769,12 @@ public sealed class KillInvincibilitySettings
 {
     [JsonPropertyName("DurationSeconds")]
     public float DurationSeconds { get; set; } = 5.0f;
+}
+
+public sealed class InaccurateSettings
+{
+    [JsonPropertyName("ForcedSpread")]
+    public float ForcedSpread { get; set; } = 0.088f;
 }
 
 public sealed class GodModeSettings
@@ -676,6 +847,12 @@ public sealed class MagnifierSettings
 {
     [JsonPropertyName("CustomFov")]
     public uint CustomFov { get; set; } = 50;
+}
+
+public sealed class TrackerSettings
+{
+    [JsonPropertyName("ParticleName")]
+    public string ParticleName { get; set; } = "particles/ui/hud/ui_map_def_utility_trail.vpcf";
 }
 
 public sealed class ExplosiveShotSettings
@@ -783,6 +960,27 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["ZoneReaper"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = 1
+        },
+        ["Ghoul"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["MindHack"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = -1
+        },
         ["Duplicator"] = new()
         {
             Enabled = true,
@@ -868,6 +1066,20 @@ public sealed class PluginConfig : BasePluginConfig
             MaxPerServer = -1
         },
         ["FrozenDecoy"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["BladeMaster"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["MagneticDecoy"] = new()
         {
             Enabled = true,
             Weight = 10,
@@ -965,6 +1177,41 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["Pyro"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["RichBoy"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Thorns"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Grenadier"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Ninja"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["Pilot"] = new()
         {
             Enabled = true,
@@ -993,7 +1240,28 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["Silent"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["ThirdEye"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["FalconEye"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Cypher"] = new()
         {
             Enabled = true,
             Weight = 10,
@@ -1070,6 +1338,27 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["HealingChicken"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Legendary",
+            MaxPerServer = 1
+        },
+        ["FindThem"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = 1
+        },
+        ["KamikazeChicken"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = 1
+        },
         ["FlashJump"] = new()
         {
             Enabled = true,
@@ -1139,6 +1428,13 @@ public sealed class PluginConfig : BasePluginConfig
             Weight = 10,
             Rarity = "Common",
             MaxPerServer = -1
+        },
+        ["Tracker"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = 1
         },
         ["ExplosiveShot"] = new()
         {
@@ -1245,6 +1541,13 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["Deaf"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["Illiterate"] = new()
         {
             Enabled = true,
@@ -1256,6 +1559,9 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("Armored")]
     public ArmoredSettings Armored { get; set; } = new();
+
+    [JsonPropertyName("BladeMaster")]
+    public BladeMasterSettings BladeMaster { get; set; } = new();
 
     [JsonPropertyName("Dwarf")]
     public DwarfSettings Dwarf { get; set; } = new();
@@ -1271,6 +1577,9 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("FrozenDecoy")]
     public FrozenDecoySettings FrozenDecoy { get; set; } = new();
+
+    [JsonPropertyName("MagneticDecoy")]
+    public MagneticDecoySettings MagneticDecoy { get; set; } = new();
 
     [JsonPropertyName("DecoyXRay")]
     public DecoyXRaySettings DecoyXRay { get; set; } = new();
@@ -1290,6 +1599,18 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("HealingSmoke")]
     public HealingSmokeSettings HealingSmoke { get; set; } = new();
 
+    [JsonPropertyName("Pyro")]
+    public PyroSettings Pyro { get; set; } = new();
+
+    [JsonPropertyName("RichBoy")]
+    public RichBoySettings RichBoy { get; set; } = new();
+
+    [JsonPropertyName("Thorns")]
+    public ThornsSettings Thorns { get; set; } = new();
+
+    [JsonPropertyName("Ninja")]
+    public NinjaSettings Ninja { get; set; } = new();
+
     [JsonPropertyName("Pilot")]
     public PilotSettings Pilot { get; set; } = new();
 
@@ -1301,6 +1622,18 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("ThirdEye")]
     public ThirdEyeSettings ThirdEye { get; set; } = new();
+
+    [JsonPropertyName("FalconEye")]
+    public FalconEyeSettings FalconEye { get; set; } = new();
+
+    [JsonPropertyName("Cypher")]
+    public CypherSettings Cypher { get; set; } = new();
+
+    [JsonPropertyName("Ghoul")]
+    public GhoulSettings Ghoul { get; set; } = new();
+
+    [JsonPropertyName("MindHack")]
+    public MindHackSettings MindHack { get; set; } = new();
 
     [JsonPropertyName("TimeRecall")]
     public TimeRecallSettings TimeRecall { get; set; } = new();
@@ -1328,6 +1661,15 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("Chicken")]
     public ChickenSettings Chicken { get; set; } = new();
+
+    [JsonPropertyName("HealingChicken")]
+    public HealingChickenSettings HealingChicken { get; set; } = new();
+
+    [JsonPropertyName("FindThem")]
+    public FindThemSettings FindThem { get; set; } = new();
+
+    [JsonPropertyName("KamikazeChicken")]
+    public KamikazeChickenSettings KamikazeChicken { get; set; } = new();
 
     [JsonPropertyName("FlashJump")]
     public FlashJumpSettings FlashJump { get; set; } = new();
@@ -1359,6 +1701,9 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("Magnifier")]
     public MagnifierSettings Magnifier { get; set; } = new();
 
+    [JsonPropertyName("Tracker")]
+    public TrackerSettings Tracker { get; set; } = new();
+
     [JsonPropertyName("UnluckyCouples")]
     public UnluckyCouplesSettings UnluckyCouples { get; set; } = new();
 
@@ -1367,6 +1712,9 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("SuperRecoil")]
     public SuperRecoilSettings SuperRecoil { get; set; } = new();
+
+    [JsonPropertyName("Inaccurate")]
+    public InaccurateSettings Inaccurate { get; set; } = new();
 
     [JsonPropertyName("ExplosiveShot")]
     public ExplosiveShotSettings ExplosiveShot { get; set; } = new();
@@ -1454,6 +1802,11 @@ public sealed class PluginConfig : BasePluginConfig
         ["UnluckyCouples"] = new() { Enabled = true, Weight = 10 },
         ["SuperKnockback"] = new() { Enabled = true, Weight = 10 },
         ["SuperRecoil"] = new() { Enabled = true, Weight = 10 },
+        ["Inaccurate"] = new() { Enabled = true, Weight = 10 },
+        ["SilentWorld"] = new() { Enabled = true, Weight = 10 },
+        ["AnywhereBombPlant"] = new() { Enabled = true, Weight = 10 },
+        ["KillerSatellite"] = new() { Enabled = true, Weight = 10 },
+        ["SkillMaster"] = new() { Enabled = true, Weight = 10 },
         ["SuperpowerXray"] = new() { Enabled = true, Weight = 10 },
         ["Xray"] = new() { Enabled = true, Weight = 10 },
         ["TopTierParty"] = new() { Enabled = true, Weight = 3 },

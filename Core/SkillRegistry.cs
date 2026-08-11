@@ -31,19 +31,31 @@ public sealed class SkillRegistry
         SpectatorCameraService spectator,
         IlliterateService illiterate,
         ThirdEyeService thirdEye,
+        FalconEyeService falconEye,
+        CypherCameraService cypher,
         ReviveService revives,
         GhostService ghosts,
         ChickenService chickens,
+        HealingChickenService healingChickens,
+        FindThemService findThem,
+        KamikazeChickenService kamikazeChickens,
         GlazService glaz,
         HolyHandGrenadeService holyHandGrenades,
         CrosshairSuppressionService crosshairs,
-        FieldOfViewService fieldOfView)
+        DeafSoundService deafSounds,
+        FieldOfViewService fieldOfView,
+        TrackerTrailService tracker,
+        MindHackService mindHack,
+        NinjaVisibilityService ninjaVisibility)
     {
         var registry = new SkillRegistry();
         var antiFlash = new AntiFlashSkill(config.AntiFlash);
         registry.Register(new FleetFootedSkill());
         registry.Register(new SpeedBoostSkill());
         registry.Register(new DeathNoteSkill());
+        registry.Register(new ZoneReaperSkill());
+        registry.Register(new GhoulSkill(config.Ghoul));
+        registry.Register(new MindHackSkill(config.MindHack, mindHack));
         registry.Register(new DuplicatorSkill());
         registry.Register(new DeactivatorSkill());
         registry.Register(new ChooseOneOfThreeSkill());
@@ -52,6 +64,7 @@ public sealed class SkillRegistry
         registry.Register(new VampiricRoundsSkill());
         registry.Register(new FieldMedicSkill());
         registry.Register(new ArmoredSkill(config.Armored));
+        registry.Register(new BladeMasterSkill(config.BladeMaster));
         registry.Register(new IronHeadSkill());
         registry.Register(new DwarfSkill(config.Dwarf));
         registry.Register(new EnemySpinSkill(config.EnemySpin, playerView));
@@ -59,6 +72,7 @@ public sealed class SkillRegistry
         registry.Register(new DashSkill(config.Dash));
         registry.Register(new FriendlyFireSkill(config.FriendlyFire, friendlyFire));
         registry.Register(new FrozenDecoySkill(config.FrozenDecoy));
+        registry.Register(new MagneticDecoySkill(config.MagneticDecoy));
         registry.Register(new DecoyXRaySkill(config.DecoyXRay, wallhack));
         registry.Register(new ExplodingBarrelSkill(barrels));
         registry.Register(new FortniteSkill(fortnite));
@@ -76,11 +90,19 @@ public sealed class SkillRegistry
         registry.Register(new RadarHackSkill());
         registry.Register(new ToxicSmokeSkill(config.ToxicSmoke));
         registry.Register(new HealingSmokeSkill(config.HealingSmoke));
+        registry.Register(new PyroSkill(config.Pyro));
+        registry.Register(new RichBoySkill(config.RichBoy));
+        registry.Register(new ThornsSkill(config.Thorns));
+        registry.Register(new GrenadierSkill());
+        registry.Register(new NinjaSkill(config.Ninja, ninjaVisibility));
         registry.Register(new PilotSkill(config.Pilot));
         registry.Register(new MeitoSkill());
         registry.Register(new BombMinerSkill(config.BombMiner, bombMiner));
         registry.Register(new SoundMakerSkill(config.SoundMaker));
+        registry.Register(new SilentSkill());
         registry.Register(new ThirdEyeSkill(thirdEye));
+        registry.Register(new FalconEyeSkill(falconEye));
+        registry.Register(new CypherSkill(cypher));
         registry.Register(new TimeRecallSkill(config.TimeRecall, playerView));
         registry.Register(new TimeControllerSkill(config.TimeController));
         registry.Register(new MuhammadSkill(config.Muhammad, explosions));
@@ -91,6 +113,9 @@ public sealed class SkillRegistry
         registry.Register(new GhostSkill(ghosts));
         registry.Register(antiFlash);
         registry.Register(new ChickenSkill(chickens));
+        registry.Register(new HealingChickenSkill(healingChickens));
+        registry.Register(new FindThemSkill(config.FindThem, findThem));
+        registry.Register(new KamikazeChickenSkill(config.KamikazeChicken, kamikazeChickens));
         registry.Register(new FlashJumpSkill(config.FlashJump, antiFlash));
         registry.Register(new GlazSkill(config.Glaz, glaz));
         registry.Register(new HolyHandGrenadeSkill(config.HolyHandGrenade, holyHandGrenades));
@@ -101,6 +126,7 @@ public sealed class SkillRegistry
         registry.Register(new LongZeusSkill(config.LongZeus, longRangeWeapons));
         registry.Register(new HotBombSkill(config.HotBomb));
         registry.Register(new MagnifierSkill(config.Magnifier, fieldOfView));
+        registry.Register(new TrackerSkill(tracker));
         registry.Register(new ExplosiveShotSkill(config.ExplosiveShot, explosions));
         registry.Register(new WallhackSkill(wallhack));
         registry.Register(new NightmareSkill(nightmare));
@@ -110,6 +136,7 @@ public sealed class SkillRegistry
         registry.Register(new BlastShotSkill(config.BlastShot, explosions));
         registry.Register(new FlashlightSkill(config.Flashlight, antiFlash));
         registry.Register(new JammerSkill(crosshairs));
+        registry.Register(new DeafSkill(deafSounds));
         registry.Register(new IlliterateSkill(illiterate));
         return registry;
     }
