@@ -13,6 +13,7 @@ public sealed class SkillManager
     private readonly SkillRegistry _registry;
     private readonly PerformanceMonitor _performance;
     private readonly Dictionary<int, PlayerSession> _sessions = new();
+    private SkillPlan? _currentPlan;
 
     public int AssignedPlayerCount => _sessions.Values.Count(session => session.Assignments.Count > 0);
     public int ActiveAssignmentCount => _sessions.Values.Sum(session => session.Assignments.Count);
@@ -27,6 +28,220 @@ public sealed class SkillManager
         return session.Assignments.Select(item => item.Skill.Descriptor).ToArray();
     }
 
+    public SkillDescriptor? TryGetDescriptor(string skillId) =>
+        _registry.TryGet(skillId, out var skill) ? skill?.Descriptor : null;
+
+    public bool TryDeactivatePlayerSkills(
+        CCSPlayerController caster,
+        CCSPlayerController target,
+        string sourceSkillId,
+        out IReadOnlyList<SkillDescriptor> disabledSkills,
+        out string error)
+    {
+        disabledSkills = Array.Empty<SkillDescriptor>();
+        error = string.Empty;
+        if (!caster.IsValid || !caster.PawnIsAlive || !target.IsValid || !target.PawnIsAlive)
+        {
+            error = "施法者或目标已经失效。";
+            return false;
+        }
+
+        if (caster.Index == target.Index || caster.Team == target.Team)
+        {
+            error = "只能禁用一名存活敌人的技能。";
+            return false;
+        }
+
+        if (!_sessions.TryGetValue(target.Slot, out var targetSession)
+            || !targetSession.Matches(target)
+            || targetSession.Assignments.Count == 0)
+        {
+            error = $"{target.PlayerName} 当前没有可以禁用的技能。";
+            return false;
+        }
+
+        if (!_sessions.TryGetValue(caster.Slot, out var casterSession)
+            || !casterSession.Matches(caster)
+            || !casterSession.Assignments.Any(assignment =>
+                assignment.Skill.Descriptor.Id.Equals(sourceSkillId, StringComparison.OrdinalIgnoreCase)))
+        {
+            error = "技能终止能力已经失效。";
+            return false;
+        }
+
+        disabledSkills = targetSession.Assignments
+            .Select(assignment => assignment.Skill.Descriptor)
+            .ToArray();
+        RevokeSession(targetSession, target);
+
+        var sourceAssignment = casterSession.Assignments.First(assignment =>
+            assignment.Skill.Descriptor.Id.Equals(sourceSkillId, StringComparison.OrdinalIgnoreCase));
+        RevokeAssignment(casterSession, sourceAssignment, caster);
+        return true;
+    }
+
+    public IReadOnlyList<SkillDescriptor> DrawSkillChoices(
+        CCSPlayerController player,
+        int count,
+        params string[] excludedSkillIds)
+    {
+        if (!player.IsValid || !player.PawnIsAlive || count <= 0)
+        {
+            return Array.Empty<SkillDescriptor>();
+        }
+
+        var excluded = excludedSkillIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (_sessions.TryGetValue(player.Slot, out var currentSession) && currentSession.Matches(player))
+        {
+            excluded.UnionWith(currentSession.Assignments.Select(item => item.Skill.Descriptor.Id));
+        }
+
+        var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
+        var candidates = _registry.All
+            .Where(skill => !excluded.Contains(skill.Descriptor.Id))
+            .Where(skill => CanGrantRuntimeSkill(skill, player, eligiblePlayers))
+            .ToList();
+        if (_sessions.TryGetValue(player.Slot, out var session) && session.Matches(player))
+        {
+            var preferred = candidates
+                .Where(skill => !session.RecentSkills.Contains(skill.Descriptor.Id))
+                .ToList();
+            if (preferred.Count >= Math.Min(count, candidates.Count))
+            {
+                candidates = preferred;
+            }
+        }
+
+        var selected = new List<ISkill>();
+        while (selected.Count < count && candidates.Count > 0)
+        {
+            var skill = RaritySelector.Select(
+                candidates,
+                GetRarity,
+                GetRarityWeight,
+                GetWeight);
+            if (skill is null)
+            {
+                break;
+            }
+
+            selected.Add(skill);
+            candidates.Remove(skill);
+        }
+
+        return selected.Select(skill => skill.Descriptor).ToArray();
+    }
+
+    public bool TryReplaceWithSkill(
+        CCSPlayerController player,
+        string skillId,
+        out SkillDescriptor? grantedSkill,
+        out string error)
+    {
+        grantedSkill = null;
+        error = string.Empty;
+        if (!player.IsValid || !player.PawnIsAlive)
+        {
+            error = "玩家已经失效。";
+            return false;
+        }
+
+        if (!_registry.TryGet(skillId, out var skill) || skill is null)
+        {
+            error = "所选技能不存在。";
+            return false;
+        }
+
+        var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
+        if (!CanGrantRuntimeSkill(skill, player, eligiblePlayers))
+        {
+            error = $"技能“{skill.Descriptor.DisplayName}”当前不可用。";
+            return false;
+        }
+
+        var session = GetOrCreateSession(player);
+        var previousSkills = session.Assignments.Select(item => item.Skill).ToArray();
+        RevokeSession(session, player);
+        if (!GrantSkill(session, player, skill))
+        {
+            foreach (var previousSkill in previousSkills)
+            {
+                GrantSkill(session, player, previousSkill);
+            }
+
+            error = $"应用技能“{skill.Descriptor.DisplayName}”失败。";
+            return false;
+        }
+
+        grantedSkill = skill.Descriptor;
+        return true;
+    }
+
+    public bool TryReplaceSkillsFromPlayer(
+        CCSPlayerController copier,
+        CCSPlayerController target,
+        out IReadOnlyList<SkillDescriptor> copiedSkills,
+        out string error)
+    {
+        copiedSkills = Array.Empty<SkillDescriptor>();
+        error = string.Empty;
+        if (!copier.IsValid || !copier.PawnIsAlive || !target.IsValid || !target.PawnIsAlive)
+        {
+            error = "施法者或目标已经失效。";
+            return false;
+        }
+
+        if (copier.Index == target.Index || copier.Team == target.Team)
+        {
+            error = "只能复制一名存活敌人的技能。";
+            return false;
+        }
+
+        if (!_sessions.TryGetValue(target.Slot, out var targetSession)
+            || !targetSession.Matches(target)
+            || targetSession.Assignments.Count == 0)
+        {
+            error = $"{target.PlayerName} 当前没有可复制的技能。";
+            return false;
+        }
+
+        var skillsToCopy = targetSession.Assignments.Select(item => item.Skill).ToArray();
+        var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
+        var incompatible = skillsToCopy.FirstOrDefault(skill =>
+            !IsEligibleForPlayer(skill, copier, eligiblePlayers)
+            || (_currentPlan is not null
+                && !CompatibilityResolver.IsSkillCompatible(skill.Descriptor, _currentPlan)));
+        if (incompatible is not null)
+        {
+            error = $"目标的技能“{incompatible.Descriptor.DisplayName}”不适用于你或当前事件。";
+            return false;
+        }
+
+        var copierSession = GetOrCreateSession(copier);
+        var previousSkills = copierSession.Assignments.Select(item => item.Skill).ToArray();
+        RevokeSession(copierSession, copier);
+
+        foreach (var skill in skillsToCopy)
+        {
+            if (GrantSkill(copierSession, copier, skill))
+            {
+                continue;
+            }
+
+            RevokeSession(copierSession, copier);
+            foreach (var previousSkill in previousSkills)
+            {
+                GrantSkill(copierSession, copier, previousSkill);
+            }
+
+            error = $"复制技能“{skill.Descriptor.DisplayName}”时应用失败。";
+            return false;
+        }
+
+        copiedSkills = skillsToCopy.Select(skill => skill.Descriptor).ToArray();
+        return true;
+    }
+
     public SkillManager(
         Myrt1eSkillRemakePlugin plugin,
         SkillRegistry registry,
@@ -39,6 +254,7 @@ public sealed class SkillManager
 
     public void AssignAllPlayers(SkillPlan plan)
     {
+        _currentPlan = plan;
         if (!plan.Enabled)
         {
             RevokeAll();
@@ -64,6 +280,7 @@ public sealed class SkillManager
         if (clearSessions)
         {
             _sessions.Clear();
+            _currentPlan = null;
         }
     }
 
@@ -260,7 +477,7 @@ public sealed class SkillManager
         }
     }
 
-    private void GrantSkill(PlayerSession session, CCSPlayerController player, ISkill skill)
+    private bool GrantSkill(PlayerSession session, CCSPlayerController player, ISkill skill)
     {
         var effects = new EffectScope(_plugin);
         var state = new SkillStateBag();
@@ -276,6 +493,7 @@ public sealed class SkillManager
             skill.OnGranted(CreateContext(player, assignment));
             session.Assignments.Add(assignment);
             Remember(session, skill.Descriptor.Id);
+            return true;
         }
         catch (Exception exception)
         {
@@ -286,6 +504,7 @@ public sealed class SkillManager
                 "Skill {SkillId} grant failed for slot {Slot}",
                 skill.Descriptor.Id,
                 player.Slot);
+            return false;
         }
     }
 
@@ -352,6 +571,26 @@ public sealed class SkillManager
 
         return IsEligibleForPlayer(skill, player, eligiblePlayers)
             && IsBelowServerLimit(skill, selected);
+    }
+
+    private bool CanGrantRuntimeSkill(
+        ISkill skill,
+        CCSPlayerController player,
+        IReadOnlyCollection<CCSPlayerController> eligiblePlayers)
+    {
+        if (!IsEnabled(skill) || GetWeight(skill) <= 0)
+        {
+            return false;
+        }
+
+        if (_currentPlan is not null
+            && !CompatibilityResolver.IsSkillCompatible(skill.Descriptor, _currentPlan))
+        {
+            return false;
+        }
+
+        return IsEligibleForPlayer(skill, player, eligiblePlayers)
+            && IsBelowServerLimit(skill, Array.Empty<ISkill>());
     }
 
     private bool IsEligibleForPlayer(
@@ -425,29 +664,40 @@ public sealed class SkillManager
 
         foreach (var assignment in session.Assignments.AsEnumerable().Reverse().ToArray())
         {
-            try
-            {
-                if (player is not null && player.IsValid && session.Matches(player))
-                {
-                    assignment.Skill.OnRevoked(CreateContext(player, assignment));
-                }
-            }
-            catch (Exception exception)
-            {
-                _plugin.Logger.LogError(
-                    exception,
-                    "Failed to revoke skill {SkillId} from slot {Slot}",
-                    assignment.Skill.Descriptor.Id,
-                    session.Slot);
-            }
-            finally
-            {
-                assignment.Effects.Dispose();
-                assignment.State.Clear();
-            }
+            RevokeAssignment(session, assignment, player);
+        }
+    }
+
+    private void RevokeAssignment(
+        PlayerSession session,
+        SkillAssignment assignment,
+        CCSPlayerController? player)
+    {
+        if (!session.Assignments.Remove(assignment))
+        {
+            return;
         }
 
-        session.Assignments.Clear();
+        try
+        {
+            if (player is not null && player.IsValid && session.Matches(player))
+            {
+                assignment.Skill.OnRevoked(CreateContext(player, assignment));
+            }
+        }
+        catch (Exception exception)
+        {
+            _plugin.Logger.LogError(
+                exception,
+                "Failed to revoke skill {SkillId} from slot {Slot}",
+                assignment.Skill.Descriptor.Id,
+                session.Slot);
+        }
+        finally
+        {
+            assignment.Effects.Dispose();
+            assignment.State.Clear();
+        }
     }
 
     private SkillContext CreateContext(CCSPlayerController player, SkillAssignment assignment)

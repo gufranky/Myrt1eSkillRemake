@@ -24,6 +24,10 @@ public sealed class SuperKnockbackEvent : RoundEventBase, IRoundEventPlayerHurt
         ExclusiveTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "damage-knockback-rules"
+        },
+        BlockedSkillTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "on-hit-knockback-control"
         }
     };
 

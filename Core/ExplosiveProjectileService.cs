@@ -18,16 +18,19 @@ public sealed class ExplosiveProjectileService
         byte Team,
         float Damage,
         float Radius,
-        float TeammateDamageMultiplier);
+        float TeammateDamageMultiplier,
+        bool DetonateImmediately);
     private sealed record KillCredit(uint AttackerIndex, int ExpiryTick);
 
     private const string GlobalNamePrefix = "myrt1eskill_explosiveshot_";
     private static readonly QAngle MarkerAngle = new(5, 10, -4);
+    private static readonly QAngle BlastShotMarkerAngle = new(13, -5, 5);
     private static readonly Vector ZeroVelocity = new(0, 0, 0);
 
     private readonly Myrt1eSkillRemakePlugin _plugin;
     private readonly ExplosiveShotSettings _settings;
     private readonly ConcurrentQueue<SpawnRequest> _pendingSpawns = new();
+    private readonly ConcurrentQueue<SpawnRequest> _pendingBlastShots = new();
     private readonly ConcurrentDictionary<uint, KillCredit> _killCredits = new();
     private MemoryFunctionWithReturn<nint, nint, nint, nint, nint, nint, nint, int>? _createHe;
     private bool _loaded;
@@ -96,7 +99,8 @@ public sealed class ExplosiveProjectileService
             float.IsFinite(radius) ? Math.Max(0.0f, radius) : 0.0f,
             float.IsFinite(teammateDamageMultiplier)
                 ? Math.Clamp(teammateDamageMultiplier, 0.0f, 1.0f)
-                : 0.50f);
+                : 0.50f,
+            DetonateImmediately: true);
         _pendingSpawns.Enqueue(request);
 
         try
@@ -116,6 +120,50 @@ public sealed class ExplosiveProjectileService
         {
             _pendingSpawns.TryDequeue(out _);
             _plugin.Logger.LogError(exception, "Failed to create an ExplosiveShot HE projectile");
+            return false;
+        }
+    }
+
+    public bool TryLaunchHe(
+        Vector position,
+        Vector velocity,
+        CCSPlayerController owner,
+        float damage,
+        float radius,
+        float teammateDamageMultiplier)
+    {
+        if (!TryResolveFactory())
+        {
+            return false;
+        }
+
+        var request = new SpawnRequest(
+            owner.Index,
+            owner.TeamNum,
+            float.IsFinite(damage) ? Math.Max(0.0f, damage) : 60.0f,
+            float.IsFinite(radius) ? Math.Max(0.0f, radius) : 400.0f,
+            float.IsFinite(teammateDamageMultiplier)
+                ? Math.Clamp(teammateDamageMultiplier, 0.0f, 1.0f)
+                : 0.50f,
+            DetonateImmediately: false);
+        _pendingBlastShots.Enqueue(request);
+
+        try
+        {
+            _createHe!.Invoke(
+                position.Handle,
+                BlastShotMarkerAngle.Handle,
+                velocity.Handle,
+                ZeroVelocity.Handle,
+                nint.Zero,
+                44,
+                owner.TeamNum);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            _pendingBlastShots.TryDequeue(out _);
+            _plugin.Logger.LogError(exception, "Failed to launch a BlastShot HE projectile");
             return false;
         }
     }
@@ -207,12 +255,31 @@ public sealed class ExplosiveProjectileService
 
     private void ConfigureSpawnedProjectile(CBaseCSGrenadeProjectile projectile)
     {
-        if (!projectile.IsValid
-            || projectile.AbsRotation is null
-            || !NearlyEquals(projectile.AbsRotation.X, MarkerAngle.X)
-            || !NearlyEquals(projectile.AbsRotation.Y, MarkerAngle.Y)
-            || !NearlyEquals(projectile.AbsRotation.Z, MarkerAngle.Z)
-            || !_pendingSpawns.TryDequeue(out var source))
+        if (!projectile.IsValid || projectile.AbsRotation is null)
+        {
+            return;
+        }
+
+        SpawnRequest source;
+        if (Matches(projectile.AbsRotation, MarkerAngle))
+        {
+            if (!_pendingSpawns.TryDequeue(out var impactSource))
+            {
+                return;
+            }
+
+            source = impactSource;
+        }
+        else if (Matches(projectile.AbsRotation, BlastShotMarkerAngle))
+        {
+            if (!_pendingBlastShots.TryDequeue(out var blastSource))
+            {
+                return;
+            }
+
+            source = blastSource;
+        }
+        else
         {
             return;
         }
@@ -221,7 +288,10 @@ public sealed class ExplosiveProjectileService
         projectile.TeamNum = source.Team;
         projectile.Damage = source.Damage;
         projectile.DmgRadius = source.Radius;
-        projectile.DetonateTime = 0.0f;
+        if (source.DetonateImmediately)
+        {
+            projectile.DetonateTime = 0.0f;
+        }
         projectile.Globalname = $"{GlobalNamePrefix}{source.Team}_{source.OwnerIndex}_{source.TeammateDamageMultiplier.ToString("R", CultureInfo.InvariantCulture)}_{projectile.Index}";
     }
 
@@ -283,9 +353,19 @@ public sealed class ExplosiveProjectileService
         {
         }
 
+
+        while (_pendingBlastShots.TryDequeue(out _))
+        {
+        }
+
         _killCredits.Clear();
     }
 
     private static bool NearlyEquals(float first, float second, float epsilon = 0.001f) =>
         Math.Abs(first - second) < epsilon;
+
+    private static bool Matches(QAngle current, QAngle marker) =>
+        NearlyEquals(current.X, marker.X)
+        && NearlyEquals(current.Y, marker.Y)
+        && NearlyEquals(current.Z, marker.Z);
 }

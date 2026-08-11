@@ -1,3 +1,4 @@
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 
@@ -71,6 +72,11 @@ public interface IPlayerDeathSkill
     void OnPlayerDeath(in SkillContext context, EventPlayerDeath @event);
 }
 
+public interface IPlayerJumpSkill
+{
+    void OnPlayerJump(in SkillContext context, EventPlayerJump @event);
+}
+
 public interface IPlayerBlindSkill
 {
     void OnPlayerBlind(in SkillContext context, EventPlayerBlind @event);
@@ -84,6 +90,19 @@ public interface IFlashbangDetonateSkill
 public interface IWeaponFireSkill
 {
     void OnWeaponFire(in SkillContext context, EventWeaponFire @event);
+}
+
+public interface IPlayerButtonsChangedSkill
+{
+    void OnPlayerButtonsChanged(
+        in SkillContext context,
+        PlayerButtons pressed,
+        PlayerButtons released);
+}
+
+public interface IWeaponReloadSkill
+{
+    void OnWeaponReload(in SkillContext context, EventWeaponReload @event);
 }
 
 public interface IBulletImpactSkill

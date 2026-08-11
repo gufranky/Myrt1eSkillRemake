@@ -13,6 +13,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="RayTraceApi">
+      <HintPath>libs\RayTraceApi.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="tests\**" />
     <None Remove="tests\**" />
   </ItemGroup>

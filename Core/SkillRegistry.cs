@@ -14,6 +14,9 @@ public sealed class SkillRegistry
         PluginConfig config,
         ExplosiveProjectileService explosions,
         ExplodingBarrelService barrels,
+        FortniteService fortnite,
+        GrappleService grapple,
+        ThrowingKnifeService throwingKnives,
         FireRainService fireRain,
         FriendlyFireService friendlyFire,
         PlayerViewService playerView,
@@ -21,17 +24,28 @@ public sealed class SkillRegistry
         BombMinerService bombMiner,
         WallhackService wallhack,
         NightmareService nightmare,
+        DarknessService darkness,
+        HomingGrenadeService homingGrenades,
+        SpectatorCameraService spectator,
         IlliterateService illiterate,
         ThirdEyeService thirdEye,
         ReviveService revives,
         GhostService ghosts,
         ChickenService chickens,
         GlazService glaz,
-        HolyHandGrenadeService holyHandGrenades)
+        HolyHandGrenadeService holyHandGrenades,
+        CrosshairSuppressionService crosshairs)
     {
         var registry = new SkillRegistry();
         var antiFlash = new AntiFlashSkill(config.AntiFlash);
         registry.Register(new FleetFootedSkill());
+        registry.Register(new SpeedBoostSkill());
+        registry.Register(new DeathNoteSkill());
+        registry.Register(new DuplicatorSkill());
+        registry.Register(new DeactivatorSkill());
+        registry.Register(new ChooseOneOfThreeSkill());
+        registry.Register(new RangeFinderSkill(config.RangeFinder, wallhack));
+        registry.Register(new InfiniteAmmoSkill());
         registry.Register(new VampiricRoundsSkill());
         registry.Register(new FieldMedicSkill());
         registry.Register(new ArmoredSkill(config.Armored));
@@ -42,7 +56,13 @@ public sealed class SkillRegistry
         registry.Register(new DashSkill(config.Dash));
         registry.Register(new FriendlyFireSkill(config.FriendlyFire, friendlyFire));
         registry.Register(new FrozenDecoySkill(config.FrozenDecoy));
+        registry.Register(new DecoyXRaySkill(config.DecoyXRay, wallhack));
         registry.Register(new ExplodingBarrelSkill(barrels));
+        registry.Register(new FortniteSkill(fortnite));
+        registry.Register(new GrappleSkill(config.Grapple, grapple));
+        registry.Register(new JumpCurseSkill(config.JumpCurse));
+        registry.Register(new PusherSkill(config.Pusher));
+        registry.Register(new ThrowingKnifeSkill(config.ThrowingKnife, throwingKnives));
         registry.Register(new EnemySpawnSkill());
         registry.Register(new OneShotSkill());
         registry.Register(new NoRecoilSkill(noRecoil));
@@ -73,6 +93,12 @@ public sealed class SkillRegistry
         registry.Register(new ExplosiveShotSkill(config.ExplosiveShot, explosions));
         registry.Register(new WallhackSkill(wallhack));
         registry.Register(new NightmareSkill(nightmare));
+        registry.Register(new DarknessSkill(darkness));
+        registry.Register(new HomingNadesSkill(config.HomingNades, homingGrenades));
+        registry.Register(new SpectatorSkill(spectator));
+        registry.Register(new BlastShotSkill(config.BlastShot, explosions));
+        registry.Register(new FlashlightSkill(config.Flashlight, antiFlash));
+        registry.Register(new JammerSkill(crosshairs));
         registry.Register(new IlliterateSkill(illiterate));
         return registry;
     }

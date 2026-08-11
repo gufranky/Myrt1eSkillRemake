@@ -20,6 +20,14 @@ public static class ConVarOverrides
         conVar.SetValue(value);
     }
 
+    public static void Set(EffectScope effects, string name, int value)
+    {
+        var conVar = FindRequired(name);
+        var original = conVar.GetPrimitiveValue<int>();
+        effects.RegisterCleanup(() => conVar.SetValue(original));
+        conVar.SetValue(value);
+    }
+
     public static float GetFloat(string name) => FindRequired(name).GetPrimitiveValue<float>();
 
     private static ConVar FindRequired(string name)

@@ -11,7 +11,7 @@ namespace Myrt1eSkill_Remake;
 public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginConfig>
 {
     public override string ModuleName => "Myrt1eSkill_Remake";
-    public override string ModuleVersion => "0.15.0-dev";
+    public override string ModuleVersion => "0.37.0-dev";
     public override string ModuleAuthor => "gufranky and contributors";
     public override string ModuleDescription => "A modular random-skill entertainment plugin for CS2.";
 
@@ -26,6 +26,9 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private DamageEventRouter _damageEventRouter = null!;
     private ExplosiveProjectileService _explosions = null!;
     private ExplodingBarrelService _barrels = null!;
+    private FortniteService _fortnite = null!;
+    private GrappleService _grapple = null!;
+    private ThrowingKnifeService _throwingKnives = null!;
     private FireRainService _fireRain = null!;
     private FriendlyFireService _friendlyFire = null!;
     private PlayerViewService _playerView = null!;
@@ -33,6 +36,9 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private BombMinerService _bombMiner = null!;
     private WallhackService _wallhack = null!;
     private NightmareService _nightmare = null!;
+    private DarknessService _darkness = null!;
+    private HomingGrenadeService _homingGrenades = null!;
+    private SpectatorCameraService _spectator = null!;
     private IlliterateService _illiterate = null!;
     private ThirdEyeService _thirdEye = null!;
     private ReviveService _revives = null!;
@@ -41,6 +47,10 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private GlazService _glaz = null!;
     private HolyHandGrenadeService _holyHandGrenades = null!;
     private RoundPresentationService _presentation = null!;
+    private CrosshairSuppressionService _crosshairs = null!;
+
+    internal SkillManager RuntimeSkills => _skillManager;
+    internal RoundPresentationService RuntimePresentation => _presentation;
 
     public void OnConfigParsed(PluginConfig config)
     {
@@ -53,6 +63,12 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _explosions.Load();
         _barrels = new ExplodingBarrelService(this, Config.ExplodingBarrel, _explosions);
         _barrels.Load();
+        _fortnite = new FortniteService(this, Config.Fortnite);
+        _fortnite.Load();
+        _grapple = new GrappleService(this, Config.Grapple);
+        _grapple.Load();
+        _throwingKnives = new ThrowingKnifeService(this);
+        _throwingKnives.Load();
         _fireRain = new FireRainService(this);
         _fireRain.Load();
         _friendlyFire = new FriendlyFireService();
@@ -62,6 +78,11 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _bombMiner.Load();
         _wallhack = new WallhackService(this);
         _nightmare = new NightmareService(this, Config.Nightmare);
+        _darkness = new DarknessService(this, Config.Darkness);
+        _homingGrenades = new HomingGrenadeService(this, Config.HomingNades);
+        _homingGrenades.Load();
+        _spectator = new SpectatorCameraService(this, Config.Spectator);
+        _spectator.Load();
         _illiterate = new IlliterateService();
         _thirdEye = new ThirdEyeService(this, Config.ThirdEye);
         _thirdEye.Load();
@@ -72,11 +93,15 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _glaz = new GlazService();
         _holyHandGrenades = new HolyHandGrenadeService(this, Config.HolyHandGrenade);
         _holyHandGrenades.Load();
+        _crosshairs = new CrosshairSuppressionService();
         PluginText.Configure(_illiterate);
         _registry = SkillRegistry.CreateDefault(
             Config,
             _explosions,
             _barrels,
+            _fortnite,
+            _grapple,
+            _throwingKnives,
             _fireRain,
             _friendlyFire,
             _playerView,
@@ -84,20 +109,24 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _bombMiner,
             _wallhack,
             _nightmare,
+            _darkness,
+            _homingGrenades,
+            _spectator,
             _illiterate,
             _thirdEye,
             _revives,
             _ghosts,
             _chickens,
             _glaz,
-            _holyHandGrenades);
+            _holyHandGrenades,
+            _crosshairs);
         _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack);
         var performance = new PerformanceMonitor(this);
         _skillManager = new SkillManager(this, _registry, performance);
         _roundEventManager = new RoundEventManager(this, _eventRegistry, performance);
         _presentation = new RoundPresentationService(this, _skillManager);
         _roundCoordinator = new RoundCoordinator(this, _skillManager, _roundEventManager, _presentation);
-        _eventRouter = new SkillEventRouter(this, _skillManager, _roundEventManager, _wallhack, _nightmare, _illiterate, _ghosts, _chickens, _glaz, _presentation);
+        _eventRouter = new SkillEventRouter(this, _skillManager, _roundEventManager, _wallhack, _nightmare, _darkness, _illiterate, _ghosts, _chickens, _glaz, _presentation, _crosshairs);
         _damageEventRouter = new DamageEventRouter(this, _skillManager, _explosions, _roundEventManager);
         _damageEventRouter.Load();
 
@@ -109,9 +138,11 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         RegisterEventHandler<EventPlayerHurt>(_eventRouter.OnPlayerHurtPre, HookMode.Pre);
         RegisterEventHandler<EventPlayerHurt>(_eventRouter.OnPlayerHurt, HookMode.Post);
         RegisterEventHandler<EventPlayerDeath>(_eventRouter.OnPlayerDeath, HookMode.Post);
+        RegisterEventHandler<EventPlayerJump>(_eventRouter.OnPlayerJump, HookMode.Post);
         RegisterEventHandler<EventPlayerBlind>(_eventRouter.OnPlayerBlind, HookMode.Post);
         RegisterEventHandler<EventFlashbangDetonate>(_eventRouter.OnFlashbangDetonate, HookMode.Post);
         RegisterEventHandler<EventWeaponFire>(_eventRouter.OnWeaponFire, HookMode.Post);
+        RegisterEventHandler<EventWeaponReload>(_eventRouter.OnWeaponReload, HookMode.Post);
         RegisterEventHandler<EventBulletImpact>(_eventRouter.OnBulletImpact, HookMode.Post);
         RegisterEventHandler<EventPlayerDeath>(_explosions.OnPlayerDeathPre, HookMode.Pre);
         RegisterEventHandler<EventDecoyStarted>(_eventRouter.OnDecoyStarted, HookMode.Post);
@@ -148,6 +179,9 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _friendlyFire?.Reset();
         _fireRain?.Unload();
         _barrels?.Unload();
+        _fortnite?.Unload();
+        _grapple?.Unload();
+        _throwingKnives?.Unload();
         _explosions?.Unload();
         _roundCoordinator?.CancelPendingAssignment();
         _presentation?.Clear();
@@ -155,10 +189,14 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _roundEventManager?.EndRound();
         _wallhack?.Dispose();
         _nightmare?.Dispose();
+        _darkness?.Dispose();
+        _homingGrenades?.Unload();
+        _spectator?.Unload();
         _thirdEye?.Unload();
         _ghosts?.Dispose();
         _chickens?.Dispose();
         _glaz?.Dispose();
+        _crosshairs?.Dispose();
         PluginText.Reset();
         Logger.LogInformation("{Plugin} unloaded (hotReload={HotReload})", ModuleName, hotReload);
     }

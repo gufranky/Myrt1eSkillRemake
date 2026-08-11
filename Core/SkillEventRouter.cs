@@ -14,11 +14,13 @@ public sealed class SkillEventRouter
     private readonly RoundEventManager _events;
     private readonly WallhackService _wallhack;
     private readonly NightmareService _nightmare;
+    private readonly DarknessService _darkness;
     private readonly IlliterateService _illiterate;
     private readonly GhostService _ghosts;
     private readonly ChickenService _chickens;
     private readonly GlazService _glaz;
     private readonly RoundPresentationService _presentation;
+    private readonly CrosshairSuppressionService _crosshairs;
 
     public SkillEventRouter(
         Myrt1eSkillRemakePlugin plugin,
@@ -26,22 +28,26 @@ public sealed class SkillEventRouter
         RoundEventManager events,
         WallhackService wallhack,
         NightmareService nightmare,
+        DarknessService darkness,
         IlliterateService illiterate,
         GhostService ghosts,
         ChickenService chickens,
         GlazService glaz,
-        RoundPresentationService presentation)
+        RoundPresentationService presentation,
+        CrosshairSuppressionService crosshairs)
     {
         _plugin = plugin;
         _skills = skills;
         _events = events;
         _wallhack = wallhack;
         _nightmare = nightmare;
+        _darkness = darkness;
         _illiterate = illiterate;
         _ghosts = ghosts;
         _chickens = chickens;
         _glaz = glaz;
         _presentation = presentation;
+        _crosshairs = crosshairs;
     }
 
     public HookResult OnPlayerHurt(EventPlayerHurt @event, GameEventInfo info)
@@ -73,6 +79,7 @@ public sealed class SkillEventRouter
     {
         _wallhack.RemoveTarget(@event.Userid);
         _nightmare.RemoveTarget(@event.Userid);
+        _darkness.RemoveTarget(@event.Userid);
         _skills.Dispatch<IPlayerDeathSkill>(
             "Event.PlayerDeath",
             (handler, context) => handler.OnPlayerDeath(context, @event));
@@ -104,6 +111,24 @@ public sealed class SkillEventRouter
         _skills.Dispatch<IWeaponFireSkill>(
             "Event.WeaponFire",
             (handler, context) => handler.OnWeaponFire(context, @event));
+        return HookResult.Continue;
+    }
+
+    public HookResult OnPlayerJump(EventPlayerJump @event, GameEventInfo info)
+    {
+        _skills.DispatchForPlayer<IPlayerJumpSkill>(
+            @event.Userid,
+            "Event.PlayerJump",
+            (handler, context) => handler.OnPlayerJump(context, @event));
+        return HookResult.Continue;
+    }
+
+    public HookResult OnWeaponReload(EventWeaponReload @event, GameEventInfo info)
+    {
+        _skills.DispatchForPlayer<IWeaponReloadSkill>(
+            @event.Userid,
+            "Event.WeaponReload",
+            (handler, context) => handler.OnWeaponReload(context, @event));
         return HookResult.Continue;
     }
 
@@ -195,7 +220,10 @@ public sealed class SkillEventRouter
         _wallhack.RemoveViewer(@event.Userid);
         _nightmare.RemoveTarget(@event.Userid);
         _nightmare.RemoveCaster(@event.Userid);
+        _darkness.RemoveTarget(@event.Userid);
+        _darkness.RemoveCaster(@event.Userid, notifyTarget: false);
         _illiterate.RemoveHolder(@event.Userid);
+        _crosshairs.ClearPlayer(@event.Userid);
         _skills.RemovePlayer(@event.Userid);
         return HookResult.Continue;
     }
@@ -235,6 +263,11 @@ public sealed class SkillEventRouter
         PlayerButtons pressed,
         PlayerButtons released)
     {
+        _skills.DispatchForPlayer<IPlayerButtonsChangedSkill>(
+            player,
+            "Input.PlayerButtonsChanged",
+            (handler, context) => handler.OnPlayerButtonsChanged(context, pressed, released));
+
         if (_plugin.Config.ActivateWithUseKey && pressed.HasFlag(PlayerButtons.Use))
         {
             _skills.TryActivate(player);

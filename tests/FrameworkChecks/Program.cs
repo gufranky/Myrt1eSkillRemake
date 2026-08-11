@@ -10,6 +10,13 @@ var checks = new List<(string Name, Action Run)>
     ("NoSkill and ChooseCarnival are incompatible", CheckEventConflict),
     ("ChooseCarnival produces ReplaceAll plan", CheckReplaceAll),
     ("Round plan clamps slots and active skill count", CheckPlanLimits),
+    ("SpeedBoost is an exclusive 50-percent movement skill", CheckSpeedBoostDescriptor),
+    ("DeathNote is a one-use active mutual-suicide skill", CheckDeathNoteDescriptor),
+    ("Duplicator is an active assignment-replacement skill", CheckDuplicatorDescriptor),
+    ("Deactivator is an epic one-use assignment removal skill", CheckDeactivatorDescriptor),
+    ("ChooseOneOfThree replaces itself from three candidates", CheckChooseOneOfThreeDescriptor),
+    ("RangeFinder provides passive distance and targeted vision", CheckRangeFinderDescriptor),
+    ("InfiniteAmmo refills fire, reload and grenade paths", CheckInfiniteAmmoRouting),
     ("FastBunnyHop blocks player jump-control skills", CheckFastBunnyHopCompatibility),
     ("Low-gravity variants cannot be combined", CheckLowGravityConflict),
     ("LowGravityPlusPlus blocks gravity and spread skills", CheckLowGravityPlusPlusCompatibility),
@@ -21,6 +28,10 @@ var checks = new List<(string Name, Action Run)>
     ("DecoyTeleport consumes decoy and spawn callbacks", CheckDecoyTeleportRouting),
     ("ChickenMode consumes complete visual lifecycle callbacks", CheckChickenModeRouting),
     ("ChickenMode blocks movement speed skills", CheckChickenModeCompatibility),
+    ("Bankruptcy resets the economy to 800 dollars", CheckBankruptcyDescriptor),
+    ("InfiniteAmmoMode owns and blocks global ammo rules", CheckInfiniteAmmoModeDescriptor),
+    ("DeadlyGrenades owns the HE-only loadout and economy rules", CheckDeadlyGrenadesDescriptor),
+    ("SmallButDeadly owns scale speed and health rules", CheckSmallButDeadlyDescriptor),
     ("InfiniteColoredSmoke consumes grenade and entity callbacks", CheckInfiniteColoredSmokeRouting),
     ("UnluckyCouples consumes pre-damage callbacks", CheckUnluckyCouplesRouting),
     ("SuperKnockback consumes player-hurt callbacks", CheckSuperKnockbackRouting),
@@ -34,6 +45,7 @@ var checks = new List<(string Name, Action Run)>
     ("Dash consumes tick callbacks", CheckDashRouting),
     ("FriendlyFire consumes attacker pre-damage callbacks", CheckFriendlyFireRouting),
     ("FrozenDecoy consumes its complete decoy lifecycle", CheckFrozenDecoyRouting),
+    ("DecoyXRay is a passive targeted reveal skill", CheckDecoyXRayDescriptor),
     ("ExplodingBarrel is a reusable active placement skill", CheckExplodingBarrelDescriptor),
     ("EnemySpawn is an active teleport skill", CheckEnemySpawnDescriptor),
     ("OneShot consumes attacker pre-damage callbacks", CheckOneShotRouting),
@@ -68,6 +80,17 @@ var checks = new List<(string Name, Action Run)>
     ("Xray events block outline skills and model events", CheckXrayCompatibility),
     ("SuperpowerXray handles disconnect replacement", CheckSuperpowerRouting),
     ("Nightmare is a one-use active vision debuff", CheckNightmareDescriptor),
+    ("Darkness uses the reference persistent black Fade", CheckDarknessDescriptor),
+    ("HomingNades tracks non-smoke projectiles and replenishes grenades", CheckHomingNadesDescriptor),
+    ("Spectator toggles a zero-cooldown enemy camera", CheckSpectatorDescriptor),
+    ("BlastShot launches native HE projectiles from MP5 secondary fire", CheckBlastShotDescriptor),
+    ("Flashlight toggles a blinding barn light", CheckFlashlightDescriptor),
+    ("Fortnite places destructible barricades", CheckFortniteDescriptor),
+    ("Grapple traces an anchor and pulls the player", CheckGrappleDescriptor),
+    ("JumpCurse mirrors holder jumps to grounded enemies", CheckJumpCurseRouting),
+    ("Pusher rolls an on-hit enemy knockback chance", CheckPusherRouting),
+    ("ThrowingKnife launches the holder's stealable lethal knife", CheckThrowingKnifeDescriptor),
+    ("Jammer is an active crosshair suppression skill", CheckJammerDescriptor),
     ("Illiterate scrambles letters and digits", CheckIlliterateScramble),
     ("Skill reveal timing matches jRandomSkills", CheckRevealTiming),
     ("Skill presentation defaults match jRandomSkills", CheckPresentationDefaults)
@@ -283,6 +306,159 @@ static void CheckInfiniteColoredSmokeRouting()
         "InfiniteColoredSmoke must block per-player smoke behavior overrides.");
 }
 
+static void CheckSpeedBoostDescriptor()
+{
+    var speedBoost = new SpeedBoostSkill();
+    var fleetFooted = new FleetFootedSkill();
+    Assert(speedBoost.Descriptor.Kind == SkillKind.Passive,
+        "SpeedBoost must be a passive skill.");
+    Assert(speedBoost.Descriptor.Description.Contains("50%", StringComparison.Ordinal),
+        "SpeedBoost must advertise the reference 50-percent increase.");
+    Assert(speedBoost.Descriptor.ConflictTags.Overlaps(fleetFooted.Descriptor.ConflictTags),
+        "SpeedBoost must not stack with other movement-speed owners.");
+}
+
+static void CheckDeathNoteDescriptor()
+{
+    var deathNote = new DeathNoteSkill();
+    Assert(deathNote.Descriptor.Kind == SkillKind.Active,
+        "DeathNote must open its target menu through active-skill input.");
+    Assert(deathNote.Descriptor.CooldownSeconds == 0,
+        "DeathNote must rely on its one-use state instead of a reusable cooldown.");
+    Assert(deathNote.Descriptor.ConflictTags.Contains("mutual-suicide"),
+        "DeathNote must declare ownership of mutual-suicide resolution.");
+}
+
+static void CheckDuplicatorDescriptor()
+{
+    var duplicator = new DuplicatorSkill();
+    Assert(duplicator.Descriptor.Kind == SkillKind.Active,
+        "Duplicator must open enemy selection through active-skill input.");
+    Assert(duplicator.Descriptor.CooldownSeconds == 0,
+        "Duplicator must replace itself instead of becoming reusable on cooldown.");
+    Assert(duplicator.Descriptor.ConflictTags.Contains("skill-assignment-replacement"),
+        "Duplicator must declare runtime ownership of its skill assignment.");
+}
+
+static void CheckDeactivatorDescriptor()
+{
+    var deactivator = new DeactivatorSkill();
+    Assert(deactivator.Descriptor.Kind == SkillKind.Active,
+        "Deactivator must require target selection through active-skill input.");
+    Assert(deactivator.Descriptor.Rarity == SkillRarity.Epic,
+        "Deactivator must use the requested epic rarity.");
+    Assert(deactivator.Descriptor.CooldownSeconds == 0.0f,
+        "Deactivator is consumed on success and does not need a cooldown.");
+    Assert(deactivator.Descriptor.ConflictTags.Contains("skill-assignment-replacement"),
+        "Deactivator must not overlap another assignment-replacing skill.");
+}
+
+static void CheckChooseOneOfThreeDescriptor()
+{
+    var chooser = new ChooseOneOfThreeSkill();
+    Assert(chooser.Descriptor.Kind == SkillKind.Active,
+        "ChooseOneOfThree must open its selection menu through active-skill input.");
+    Assert(chooser.Descriptor.ConflictTags.Contains("skill-assignment-replacement"),
+        "ChooseOneOfThree must replace its runtime assignment.");
+    Assert(new PluginConfig().ChooseCarnivalSkillId == "ChooseOneOfThree",
+        "ChooseCarnival must force the completed chooser skill by default.");
+}
+
+static void CheckRangeFinderDescriptor()
+{
+    var rangeFinder = new RangeFinderSkill(new RangeFinderSettings(), null!);
+    Assert(rangeFinder.Descriptor.Kind == SkillKind.Passive && rangeFinder is ITickSkill,
+        "RangeFinder must update distance continuously as a passive skill.");
+    var settings = new RangeFinderSettings();
+    Assert(settings.XrayDistanceThreshold == 500
+           && settings.UnitsPerMeter == 100
+           && settings.UpdateIntervalSeconds == 0.15f,
+        "RangeFinder defaults must preserve the original five-meter scan behavior.");
+}
+
+static void CheckInfiniteAmmoRouting()
+{
+    var infiniteAmmo = new InfiniteAmmoSkill();
+    Assert(infiniteAmmo.Descriptor.Kind == SkillKind.Passive,
+        "InfiniteAmmo must work without active-skill input.");
+    Assert(infiniteAmmo is IWeaponFireSkill
+           && infiniteAmmo is IWeaponReloadSkill
+           && infiniteAmmo is IGrenadeThrownSkill,
+        "InfiniteAmmo must refill firearms and replace thrown grenades.");
+    Assert(InfiniteAmmoSkill.RefilledClipAmmo == 100,
+        "InfiniteAmmo must preserve jRandomSkills' 100-round magazine behavior.");
+}
+
+static void CheckBankruptcyDescriptor()
+{
+    var bankruptcy = new BankruptcyEvent();
+    Assert(bankruptcy.Descriptor.Id == "Bankruptcy",
+        "Bankruptcy must keep the original event id.");
+    Assert(BankruptcyEvent.BankruptcyMoney == 800,
+        "Bankruptcy must reset every account to 800 dollars.");
+    Assert(bankruptcy.Descriptor.ExclusiveTags.Contains("economy-reset"),
+        "Bankruptcy must own the one-shot economy reset operation.");
+}
+
+static void CheckInfiniteAmmoModeDescriptor()
+{
+    var infiniteAmmo = new InfiniteAmmoModeEvent();
+    Assert(infiniteAmmo.Descriptor.Id == "InfiniteAmmoMode",
+        "The global event must use an id distinct from the per-player InfiniteAmmo skill.");
+    Assert(InfiniteAmmoModeEvent.InfiniteAmmoValue == 1,
+        "sv_infinite_ammo 1 must provide ammunition without requiring reloads.");
+    Assert(infiniteAmmo.Descriptor.ExclusiveTags.Contains("global-ammo-rules"),
+        "InfiniteAmmoMode must own the global ammunition rule.");
+    Assert(infiniteAmmo.Descriptor.BlockedSkillTags.Contains("weapon-ammo-control"),
+        "InfiniteAmmoMode must suppress redundant per-player ammunition skills.");
+}
+
+static void CheckDeadlyGrenadesDescriptor()
+{
+    var settings = new DeadlyGrenadesSettings();
+    var deadlyGrenades = new DeadlyGrenadesEvent(settings);
+    var infiniteAmmo = new InfiniteAmmoModeEvent();
+    Assert(deadlyGrenades is IRoundEventPlayerSpawn
+           && deadlyGrenades is IRoundEventGrenadeThrown
+           && deadlyGrenades is IRoundEventItemPickup,
+        "DeadlyGrenades must enforce its loadout on spawn, throw and pickup paths.");
+    Assert(settings.DamageMultiplier == 3.0f
+           && settings.RadiusMultiplier == 5.0f
+           && settings.StartingGrenadeCount == 3,
+        "DeadlyGrenades must preserve the original Myrt1eSkill defaults.");
+    Assert(DeadlyGrenadesEvent.BuyAllowGunsValue == 0 && DeadlyGrenadesEvent.BuyTimeValue == 0.0f,
+        "DeadlyGrenades must disable gun purchases and the buy window.");
+    Assert(deadlyGrenades.Descriptor.ExclusiveTags.Contains("global-ammo-rules")
+           && !CompatibilityResolver.CanCombine(new[] { infiniteAmmo }, deadlyGrenades),
+        "DeadlyGrenades must not combine with another global infinite-ammo event.");
+    Assert(deadlyGrenades.Descriptor.BlockedSkillTags.Contains("weapon-ammo-control")
+           && deadlyGrenades.Descriptor.BlockedSkillTags.Contains("hegrenade-behavior-control"),
+        "DeadlyGrenades must suppress redundant ammo and HE behavior skills.");
+}
+
+static void CheckSmallButDeadlyDescriptor()
+{
+    var settings = new SmallButDeadlySettings();
+    var smallButDeadly = new SmallButDeadlyEvent(settings);
+    var chickenMode = new ChickenModeEvent();
+    Assert(smallButDeadly is IRoundEventPlayerSpawn,
+        "SmallButDeadly must reapply its attributes after every spawn.");
+    Assert(settings.PlayerScale == 0.50f
+           && settings.SpeedMultiplier == 2.0f
+           && settings.Health == 10,
+        "SmallButDeadly must preserve the requested scale, speed and health values.");
+    Assert(smallButDeadly.Descriptor.ExclusiveTags.Contains("player-scale-rules")
+           && smallButDeadly.Descriptor.ExclusiveTags.Contains("movement-speed-rules")
+           && smallButDeadly.Descriptor.ExclusiveTags.Contains("player-health-rules"),
+        "SmallButDeadly must own all three global attribute rules.");
+    Assert(!CompatibilityResolver.CanCombine(new[] { chickenMode }, smallButDeadly),
+        "SmallButDeadly must not combine with ChickenMode.");
+    Assert(smallButDeadly.Descriptor.BlockedSkillTags.Contains("movement-speed")
+           && smallButDeadly.Descriptor.BlockedSkillTags.Contains("player-scale-control")
+           && smallButDeadly.Descriptor.BlockedSkillTags.Contains("max-health-control"),
+        "SmallButDeadly must block conflicting player attribute skills.");
+}
+
 static void CheckUnluckyCouplesRouting()
 {
     var couples = new UnluckyCouplesEvent(new UnluckyCouplesSettings(), null!);
@@ -376,6 +552,25 @@ static void CheckFrozenDecoyRouting()
         "FrozenDecoy must consume the complete active-decoy lifecycle.");
     Assert(frozenDecoy is IGrenadeThrownSkill,
         "FrozenDecoy must replenish its configured decoy charges after throws.");
+}
+
+static void CheckDecoyXRayDescriptor()
+{
+    var skill = new DecoyXRaySkill(new DecoyXRaySettings(), null!);
+    Assert(skill.Descriptor.Kind == SkillKind.Passive,
+        "DecoyXRay must grant its grenades without active-skill input.");
+    Assert(skill is IGrenadeThrownSkill && skill is IDecoyDetonateSkill,
+        "DecoyXRay must replenish thrown decoys and reveal targets on detonation.");
+    Assert(skill.Descriptor.ConflictTags.Contains("decoy-behavior-control")
+           && skill.Descriptor.ConflictTags.Contains("player-outline-vision")
+           && skill.Descriptor.ConflictTags.Contains("radar-vision"),
+        "DecoyXRay must conflict with other decoy and vision controllers.");
+
+    var settings = new DecoyXRaySettings();
+    Assert(settings.GrenadeCount == 3
+           && settings.RevealRadius == 500
+           && settings.RevealDurationSeconds == 10,
+        "DecoyXRay defaults must preserve the reference behavior.");
 }
 
 static void CheckExplodingBarrelDescriptor()
@@ -708,6 +903,198 @@ static void CheckNightmareDescriptor()
         "Nightmare must preserve the reference rarity.");
     Assert(nightmare.Descriptor.ConflictTags.Contains("post-processing-vision"),
         "Nightmare must declare ownership of the target post-processing view.");
+}
+
+static void CheckDarknessDescriptor()
+{
+    var darkness = new DarknessSkill(null!);
+    Assert(darkness.Descriptor.Kind == SkillKind.Active,
+        "Darkness must require activation before selecting an enemy.");
+    Assert(darkness.Descriptor.Rarity == SkillRarity.Rare,
+        "Darkness must preserve jRandomSkills' rare rarity.");
+    Assert(darkness.Descriptor.ConflictTags.Contains("screen-fade-vision"),
+        "Darkness must declare ownership of the target screen-fade effect.");
+    Assert(DarknessService.RefreshIntervalSeconds == 5.0f
+           && DarknessService.FadeDuration == 100
+           && DarknessService.FadeHoldTime == 3000,
+        "Darkness must preserve the reference Fade timings.");
+    Assert(DarknessService.PackColor(0, 0, 0, 230) == unchecked((int)0xE6000000),
+        "Darkness must pack the reference RGBA(0,0,0,230) overlay correctly.");
+}
+
+static void CheckHomingNadesDescriptor()
+{
+    var settings = new HomingNadesSettings();
+    var homing = new HomingNadesSkill(settings, null!);
+    Assert(homing.Descriptor.Kind == SkillKind.Passive
+           && homing.Descriptor.Rarity == SkillRarity.Common,
+        "HomingNades must preserve the reference passive common classification.");
+    Assert(homing is IGrenadeThrownSkill,
+        "HomingNades must replenish its HE and flashbang charges after throws.");
+    Assert(settings.Strength == 150.0f
+           && settings.MaximumVelocity == 2000.0f
+           && settings.DetonationRange == 130.0f,
+        "HomingNades must preserve the reference steering defaults.");
+    Assert(settings.HeGrenadeCount == 2 && settings.FlashbangCount == 2,
+        "HomingNades must grant two HE grenades and two flashbangs.");
+    Assert(HomingGrenadeService.TickStride == 10,
+        "HomingNades must update projectile steering every ten ticks.");
+}
+
+static void CheckSpectatorDescriptor()
+{
+    var spectator = new SpectatorSkill(null!);
+    Assert(spectator.Descriptor.Kind == SkillKind.Active
+           && spectator.Descriptor.CooldownSeconds == 0.0f,
+        "Spectator must be a zero-cooldown active camera toggle.");
+    Assert(spectator is ITickSkill,
+        "Spectator must maintain and validate its enemy camera every tick.");
+    Assert(spectator.Descriptor.ConflictTags.Contains("camera-view-control"),
+        "Spectator must not overlap another player camera controller.");
+    Assert(new SpectatorSettings().Distance == 100.0f,
+        "Spectator must preserve the reference 100-unit camera distance.");
+    Assert(SpectatorCameraService.CameraModel == "models/sprays/spray_plane.vmdl",
+        "Spectator must preserve the reference invisible camera model.");
+}
+
+static void CheckBlastShotDescriptor()
+{
+    var settings = new BlastShotSettings();
+    var blastShot = new BlastShotSkill(settings, null!);
+    Assert(blastShot is IPlayerButtonsChangedSkill && blastShot is ITickSkill,
+        "BlastShot must consume Attack2 input and maintain its cooldown HUD.");
+    Assert(blastShot.Descriptor.CooldownSeconds == 10.0f,
+        "BlastShot must expose the requested ten-second cooldown.");
+    Assert(BlastShotSkill.RequiredWeapon == "weapon_mp5sd",
+        "BlastShot must only fire while the MP5-SD is active.");
+    Assert(settings.ExplosionDamage == 60.0f
+           && settings.ExplosionRadius == 400.0f
+           && settings.Force == 1000.0f
+           && settings.TeammateDamageMultiplier == 0.50f,
+        "BlastShot must preserve the reference projectile defaults.");
+}
+
+static void CheckFlashlightDescriptor()
+{
+    var settings = new FlashlightSettings();
+    var flashlight = new FlashlightSkill(settings, null!);
+    Assert(flashlight is ITickSkill && flashlight is IPlayerDeathSkill,
+        "Flashlight must update its light every tick and remove it on death.");
+    Assert(flashlight.Descriptor.Kind == SkillKind.Active
+           && flashlight.Descriptor.Rarity == SkillRarity.Legendary
+           && flashlight.Descriptor.CooldownSeconds == 2.0f
+           && flashlight.Descriptor.MaxPerServer == 2,
+        "Flashlight must preserve the reference activation rules.");
+    Assert(settings.Range == 1200.0f
+           && settings.Brightness == 1.5f
+           && settings.BlindDuration == 5.0f
+           && settings.BlindAngle == 10.0f
+           && settings.BlindAlpha == 200.0f,
+        "Flashlight must preserve the reference beam and blindness defaults.");
+}
+
+static void CheckFortniteDescriptor()
+{
+    var settings = new FortniteSettings();
+    var fortnite = new FortniteSkill(null!);
+    Assert(fortnite.Descriptor.Kind == SkillKind.Active
+           && fortnite.Descriptor.Rarity == SkillRarity.Common
+           && fortnite.Descriptor.CooldownSeconds == 2.0f
+           && fortnite.Descriptor.MaxPerServer == 5,
+        "Fortnite must preserve the reference activation rules.");
+    Assert(settings.BarricadeHealth == 115
+           && settings.PlacementDistance == 50.0f
+           && settings.SoundVolume == 1.0f
+           && settings.PropModel.EndsWith("aztec_scaffold_wall_support_128.vmdl", StringComparison.Ordinal),
+        "Fortnite must preserve the reference barricade defaults.");
+}
+
+static void CheckGrappleDescriptor()
+{
+    var settings = new GrappleSettings();
+    var grapple = new GrappleSkill(settings, null!);
+    Assert(grapple is ITickSkill && grapple is IPlayerDeathSkill,
+        "Grapple must pull on tick and clean its rope on death.");
+    Assert(grapple.Descriptor.Kind == SkillKind.Active
+           && grapple.Descriptor.Rarity == SkillRarity.Rare
+           && grapple.Descriptor.CooldownSeconds == 10.0f,
+        "Grapple must be the requested ten-second rare active skill.");
+    Assert(settings.MaximumDistance == 1500.0f
+           && settings.MinimumDistance == 150.0f
+           && settings.StopDistance == 90.0f
+           && settings.PullSpeed == 850.0f
+           && settings.MaximumPullSeconds == 3.0f,
+        "Grapple must preserve the jRandomSkills movement defaults.");
+    Assert(GrappleService.HookModel.EndsWith("grapplinghook_hook_01_open.vmdl", StringComparison.Ordinal),
+        "Grapple must use the reference hook model.");
+}
+
+static void CheckJumpCurseRouting()
+{
+    var settings = new JumpCurseSettings();
+    var jumpCurse = new JumpCurseSkill(settings);
+    Assert(jumpCurse is IPlayerJumpSkill,
+        "JumpCurse must consume the strongly typed player-jump route.");
+    Assert(jumpCurse.Descriptor.Kind == SkillKind.Passive
+           && jumpCurse.Descriptor.Rarity == SkillRarity.Common,
+        "JumpCurse must be a common passive skill.");
+    Assert(jumpCurse.Descriptor.ConflictTags.Contains("jump-control"),
+        "JumpCurse must conflict with global or per-player jump controllers.");
+    Assert(settings.JumpVelocity == 301.0f,
+        "JumpCurse must preserve the reference forced-jump velocity.");
+}
+
+static void CheckPusherRouting()
+{
+    var settings = new PusherSettings();
+    var pusher = new PusherSkill(settings);
+    var superKnockback = new SuperKnockbackEvent(new SuperKnockbackSettings());
+    Assert(pusher is IPlayerHurtSkill,
+        "Pusher must trigger through the attacker player-hurt route.");
+    Assert(pusher.Descriptor.Kind == SkillKind.Passive
+           && pusher.Descriptor.Rarity == SkillRarity.Common,
+        "Pusher must be a common passive skill.");
+    Assert(settings.MinimumChance == 0.30f
+           && settings.MaximumChance == 0.40f
+           && settings.PushVelocity == 400.0f
+           && settings.JumpVelocity == 300.0f,
+        "Pusher must preserve the jRandomSkills probability and force defaults.");
+    Assert(superKnockback.Descriptor.BlockedSkillTags.Contains("on-hit-knockback-control"),
+        "SuperKnockback must block Pusher to prevent stacked knockback.");
+}
+
+static void CheckThrowingKnifeDescriptor()
+{
+    var settings = new ThrowingKnifeSettings();
+    var throwingKnife = new ThrowingKnifeSkill(settings, null!);
+    Assert(throwingKnife is ITickSkill && throwingKnife is IPlayerDeathSkill,
+        "ThrowingKnife must detect recovery and clean a thrown knife on death.");
+    Assert(throwingKnife.Descriptor.Kind == SkillKind.Active
+           && throwingKnife.Descriptor.Rarity == SkillRarity.Common
+           && throwingKnife.Descriptor.CooldownSeconds == 0.0f
+           && throwingKnife.Descriptor.MaxPerServer == 1,
+        "ThrowingKnife must preserve the reference active-skill limits.");
+    Assert(settings.ThrowForce == 2000.0f
+           && settings.TriggerRadius == 10.0f
+           && settings.Damage == 9999.0f
+           && !settings.FriendlyFire,
+        "ThrowingKnife must preserve the reference force, hitbox, damage and friendly-fire defaults.");
+    var deadlyGrenades = new DeadlyGrenadesEvent(new DeadlyGrenadesSettings());
+    Assert(deadlyGrenades.Descriptor.BlockedSkillTags.Contains("projectile-launcher-control"),
+        "DeadlyGrenades must block ThrowingKnife's projectile launcher rule.");
+}
+
+static void CheckJammerDescriptor()
+{
+    var jammer = new JammerSkill(null!);
+    Assert(jammer.Descriptor.Kind == SkillKind.Active,
+        "Jammer must require activation before selecting a target.");
+    Assert(jammer.Descriptor.Rarity == SkillRarity.Common,
+        "Jammer must preserve jRandomSkills' common rarity.");
+    Assert(jammer is IPlayerDeathSkill,
+        "Jammer must restore the crosshair when its target dies.");
+    Assert(CrosshairSuppressionService.CrosshairHideHudBit == 1u << 8,
+        "Jammer must use CS2's crosshair bit in m_iHideHUD.");
 }
 
 static void CheckIlliterateScramble()

@@ -32,7 +32,7 @@ public sealed class NormalRoundEvent : RoundEventBase
         Id = "NormalRound",
         DisplayName = "正常回合",
         Description = "本回合没有额外娱乐事件。",
-        DefaultWeight = 100,
+        DefaultWeight = 10,
         CanBeNested = false
     };
 }

@@ -11,12 +11,15 @@ namespace Myrt1eSkill_Remake.Core;
 /// </summary>
 public sealed class RoundPresentationService
 {
+    private sealed record StatusLine(string Text, string Color);
+
     private readonly Myrt1eSkillRemakePlugin _plugin;
     private readonly SkillManager _skills;
     private RoundPlan? _plan;
     private DateTime _hudExpiresAt;
     private DateTime _descriptionExpiresAt;
     private long _generation;
+    private readonly Dictionary<uint, Dictionary<string, StatusLine>> _statusLines = new();
 
     public RoundPresentationService(Myrt1eSkillRemakePlugin plugin, SkillManager skills)
     {
@@ -56,6 +59,41 @@ public sealed class RoundPresentationService
         _plan = null;
         _hudExpiresAt = DateTime.MinValue;
         _descriptionExpiresAt = DateTime.MinValue;
+        _statusLines.Clear();
+    }
+
+    public void SetStatusLine(
+        CCSPlayerController player,
+        string sourceId,
+        string text,
+        string color = "#FFFFFF")
+    {
+        if (!player.IsValid || string.IsNullOrWhiteSpace(sourceId))
+        {
+            return;
+        }
+
+        if (!_statusLines.TryGetValue(player.Index, out var lines))
+        {
+            lines = new Dictionary<string, StatusLine>(StringComparer.OrdinalIgnoreCase);
+            _statusLines[player.Index] = lines;
+        }
+
+        lines[sourceId] = new StatusLine(text, NormalizeColor(color));
+    }
+
+    public void RemoveStatusLine(CCSPlayerController player, string sourceId)
+    {
+        if (!_statusLines.TryGetValue(player.Index, out var lines))
+        {
+            return;
+        }
+
+        lines.Remove(sourceId);
+        if (lines.Count == 0)
+        {
+            _statusLines.Remove(player.Index);
+        }
     }
 
     public void OnTick()
@@ -130,22 +168,42 @@ public sealed class RoundPresentationService
         var skillText = Encode(PluginText.Transform(player, $"你的技能：{skillNames}"));
         var html = $"<font color='#F4C95D'>{eventText}</font><br><font color='#8BE9FD'>{skillText}</font>";
 
-        if (!showDescriptions)
+        if (showDescriptions)
         {
-            return html;
+            var eventDescriptions = string.Join("；", plan.Events.Select(item => item.Description));
+            if (!string.IsNullOrWhiteSpace(eventDescriptions))
+            {
+                html += $"<br><font color='#D7D7D7'>{Encode(PluginText.Transform(player, eventDescriptions))}</font>";
+            }
+
+            var descriptions = assigned.Count == 0
+                ? Encode(PluginText.Transform(player, "本回合没有技能。"))
+                : string.Join("<br>", assigned.Select(item =>
+                    Encode(PluginText.Transform(player, $"{item.DisplayName}：{item.Description}"))));
+            html += $"<br><font color='#FFFFFF'>{descriptions}</font>";
         }
 
-        var eventDescriptions = string.Join("；", plan.Events.Select(item => item.Description));
-        if (!string.IsNullOrWhiteSpace(eventDescriptions))
+        if (_statusLines.TryGetValue(player.Index, out var statusLines))
         {
-            html += $"<br><font color='#D7D7D7'>{Encode(PluginText.Transform(player, eventDescriptions))}</font>";
+            foreach (var line in statusLines.Values)
+            {
+                html += $"<br><font color='{line.Color}'>{Encode(PluginText.Transform(player, line.Text))}</font>";
+            }
         }
 
-        var descriptions = assigned.Count == 0
-            ? Encode(PluginText.Transform(player, "本回合没有技能。"))
-            : string.Join("<br>", assigned.Select(item =>
-                Encode(PluginText.Transform(player, $"{item.DisplayName}：{item.Description}"))));
-        return html + $"<br><font color='#FFFFFF'>{descriptions}</font>";
+        return html;
+    }
+
+    private static string NormalizeColor(string color)
+    {
+        if (color.Length == 7
+            && color[0] == '#'
+            && color.Skip(1).All(character => char.IsAsciiHexDigit(character)))
+        {
+            return color;
+        }
+
+        return "#FFFFFF";
     }
 
     private static DateTime Expiry(DateTime now, float durationSeconds) =>

@@ -96,6 +96,219 @@ public sealed class FrozenDecoySettings
     public int GrenadeLimit { get; set; } = 3;
 }
 
+public sealed class DarknessSettings
+{
+    [JsonPropertyName("R")]
+    public int Red { get; set; } = 0;
+
+    [JsonPropertyName("G")]
+    public int Green { get; set; } = 0;
+
+    [JsonPropertyName("B")]
+    public int Blue { get; set; } = 0;
+
+    [JsonPropertyName("A")]
+    public int Alpha { get; set; } = 230;
+}
+
+public sealed class HomingNadesSettings
+{
+    [JsonPropertyName("Strength")]
+    public float Strength { get; set; } = 150.0f;
+
+    [JsonPropertyName("MaximumVelocity")]
+    public float MaximumVelocity { get; set; } = 2000.0f;
+
+    [JsonPropertyName("DetonationRange")]
+    public float DetonationRange { get; set; } = 130.0f;
+
+    [JsonPropertyName("HeGrenadeCount")]
+    public int HeGrenadeCount { get; set; } = 2;
+
+    [JsonPropertyName("FlashbangCount")]
+    public int FlashbangCount { get; set; } = 2;
+}
+
+public sealed class SpectatorSettings
+{
+    [JsonPropertyName("Distance")]
+    public float Distance { get; set; } = 100.0f;
+}
+
+public sealed class BlastShotSettings
+{
+    [JsonPropertyName("ExplosionRadius")]
+    public float ExplosionRadius { get; set; } = 400.0f;
+
+    [JsonPropertyName("ExplosionDamage")]
+    public float ExplosionDamage { get; set; } = 60.0f;
+
+    [JsonPropertyName("TeammateDamageMultiplier")]
+    public float TeammateDamageMultiplier { get; set; } = 0.50f;
+
+    [JsonPropertyName("CooldownSeconds")]
+    public float CooldownSeconds { get; set; } = 10.0f;
+
+    [JsonPropertyName("Force")]
+    public float Force { get; set; } = 1000.0f;
+}
+
+public sealed class FlashlightSettings
+{
+    [JsonPropertyName("ColorR")]
+    public int ColorR { get; set; } = 255;
+
+    [JsonPropertyName("ColorG")]
+    public int ColorG { get; set; } = 255;
+
+    [JsonPropertyName("ColorB")]
+    public int ColorB { get; set; } = 255;
+
+    [JsonPropertyName("Brightness")]
+    public float Brightness { get; set; } = 1.5f;
+
+    [JsonPropertyName("Range")]
+    public float Range { get; set; } = 1200.0f;
+
+    [JsonPropertyName("BlindDuration")]
+    public float BlindDuration { get; set; } = 5.0f;
+
+    [JsonPropertyName("BlindAlpha")]
+    public float BlindAlpha { get; set; } = 200.0f;
+
+    [JsonPropertyName("BlindAngle")]
+    public float BlindAngle { get; set; } = 10.0f;
+}
+
+public sealed class FortniteSettings
+{
+    [JsonPropertyName("BarricadeHealth")]
+    public int BarricadeHealth { get; set; } = 115;
+
+    [JsonPropertyName("PlacementDistance")]
+    public float PlacementDistance { get; set; } = 50.0f;
+
+    [JsonPropertyName("PropModel")]
+    public string PropModel { get; set; } = "models/props/de_aztec/hr_aztec/aztec_scaffolding/aztec_scaffold_wall_support_128.vmdl";
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 1.0f;
+}
+
+public sealed class DeadlyGrenadesSettings
+{
+    [JsonPropertyName("DamageMultiplier")]
+    public float DamageMultiplier { get; set; } = 3.0f;
+
+    [JsonPropertyName("RadiusMultiplier")]
+    public float RadiusMultiplier { get; set; } = 5.0f;
+
+    [JsonPropertyName("StartingGrenadeCount")]
+    public int StartingGrenadeCount { get; set; } = 3;
+}
+
+public sealed class GrappleSettings
+{
+    [JsonPropertyName("MaximumDistance")]
+    public float MaximumDistance { get; set; } = 1500.0f;
+
+    [JsonPropertyName("MinimumDistance")]
+    public float MinimumDistance { get; set; } = 150.0f;
+
+    [JsonPropertyName("StopDistance")]
+    public float StopDistance { get; set; } = 90.0f;
+
+    [JsonPropertyName("PullSpeed")]
+    public float PullSpeed { get; set; } = 850.0f;
+
+    [JsonPropertyName("MaximumPullSeconds")]
+    public float MaximumPullSeconds { get; set; } = 3.0f;
+
+    [JsonPropertyName("RopeWidth")]
+    public float RopeWidth { get; set; } = 0.8f;
+
+    [JsonPropertyName("HookEmbed")]
+    public float HookEmbed { get; set; } = 8.0f;
+
+    [JsonPropertyName("HookScale")]
+    public float HookScale { get; set; } = 0.4f;
+
+    [JsonPropertyName("SoundVolume")]
+    public float SoundVolume { get; set; } = 1.0f;
+}
+
+public sealed class JumpCurseSettings
+{
+    [JsonPropertyName("JumpVelocity")]
+    public float JumpVelocity { get; set; } = 301.0f;
+}
+
+public sealed class PusherSettings
+{
+    [JsonPropertyName("MinimumChance")]
+    public float MinimumChance { get; set; } = 0.30f;
+
+    [JsonPropertyName("MaximumChance")]
+    public float MaximumChance { get; set; } = 0.40f;
+
+    [JsonPropertyName("JumpVelocity")]
+    public float JumpVelocity { get; set; } = 300.0f;
+
+    [JsonPropertyName("PushVelocity")]
+    public float PushVelocity { get; set; } = 400.0f;
+}
+
+public sealed class ThrowingKnifeSettings
+{
+    [JsonPropertyName("ThrowForce")]
+    public float ThrowForce { get; set; } = 2000.0f;
+
+    [JsonPropertyName("TriggerRadius")]
+    public float TriggerRadius { get; set; } = 10.0f;
+
+    [JsonPropertyName("Damage")]
+    public float Damage { get; set; } = 9999.0f;
+
+    [JsonPropertyName("FriendlyFire")]
+    public bool FriendlyFire { get; set; } = false;
+}
+
+public sealed class SmallButDeadlySettings
+{
+    [JsonPropertyName("PlayerScale")]
+    public float PlayerScale { get; set; } = 0.50f;
+
+    [JsonPropertyName("SpeedMultiplier")]
+    public float SpeedMultiplier { get; set; } = 2.0f;
+
+    [JsonPropertyName("Health")]
+    public int Health { get; set; } = 10;
+}
+
+public sealed class DecoyXRaySettings
+{
+    [JsonPropertyName("GrenadeCount")]
+    public int GrenadeCount { get; set; } = 3;
+
+    [JsonPropertyName("RevealRadius")]
+    public float RevealRadius { get; set; } = 500.0f;
+
+    [JsonPropertyName("RevealDurationSeconds")]
+    public float RevealDurationSeconds { get; set; } = 10.0f;
+}
+
+public sealed class RangeFinderSettings
+{
+    [JsonPropertyName("XrayDistanceThreshold")]
+    public float XrayDistanceThreshold { get; set; } = 500.0f;
+
+    [JsonPropertyName("UnitsPerMeter")]
+    public float UnitsPerMeter { get; set; } = 100.0f;
+
+    [JsonPropertyName("UpdateIntervalSeconds")]
+    public float UpdateIntervalSeconds { get; set; } = 0.15f;
+}
+
 public sealed class ExplodingBarrelSettings
 {
     [JsonPropertyName("ExplosionDamage")]
@@ -454,6 +667,41 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["SpeedBoost"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["DeathNote"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Duplicator"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Deactivator"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Epic",
+            MaxPerServer = -1
+        },
+        ["ChooseOneOfThree"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["VampiricRounds"] = new()
         {
             Enabled = true,
@@ -518,6 +766,27 @@ public sealed class PluginConfig : BasePluginConfig
             MaxPerServer = -1
         },
         ["FrozenDecoy"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["DecoyXRay"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["RangeFinder"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["InfiniteAmmo"] = new()
         {
             Enabled = true,
             Weight = 10,
@@ -741,6 +1010,83 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Rare",
             MaxPerServer = -1
         },
+        ["Darkness"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = -1
+        },
+        ["HomingNades"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Spectator"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["BlastShot"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Flashlight"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Legendary",
+            MaxPerServer = 2
+        },
+        ["Fortnite"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = 5
+        },
+        ["Grapple"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = -1
+        },
+        ["JumpCurse"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["Pusher"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
+        ["ThrowingKnife"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = 1
+        },
+        ["Jammer"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Common",
+            MaxPerServer = -1
+        },
         ["Illiterate"] = new()
         {
             Enabled = true,
@@ -767,6 +1113,12 @@ public sealed class PluginConfig : BasePluginConfig
 
     [JsonPropertyName("FrozenDecoy")]
     public FrozenDecoySettings FrozenDecoy { get; set; } = new();
+
+    [JsonPropertyName("DecoyXRay")]
+    public DecoyXRaySettings DecoyXRay { get; set; } = new();
+
+    [JsonPropertyName("RangeFinder")]
+    public RangeFinderSettings RangeFinder { get; set; } = new();
 
     [JsonPropertyName("ExplodingBarrel")]
     public ExplodingBarrelSettings ExplodingBarrel { get; set; } = new();
@@ -843,6 +1195,42 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("Nightmare")]
     public NightmareSettings Nightmare { get; set; } = new();
 
+    [JsonPropertyName("Darkness")]
+    public DarknessSettings Darkness { get; set; } = new();
+
+    [JsonPropertyName("HomingNades")]
+    public HomingNadesSettings HomingNades { get; set; } = new();
+
+    [JsonPropertyName("Spectator")]
+    public SpectatorSettings Spectator { get; set; } = new();
+
+    [JsonPropertyName("BlastShot")]
+    public BlastShotSettings BlastShot { get; set; } = new();
+
+    [JsonPropertyName("Flashlight")]
+    public FlashlightSettings Flashlight { get; set; } = new();
+
+    [JsonPropertyName("Fortnite")]
+    public FortniteSettings Fortnite { get; set; } = new();
+
+    [JsonPropertyName("DeadlyGrenades")]
+    public DeadlyGrenadesSettings DeadlyGrenades { get; set; } = new();
+
+    [JsonPropertyName("Grapple")]
+    public GrappleSettings Grapple { get; set; } = new();
+
+    [JsonPropertyName("JumpCurse")]
+    public JumpCurseSettings JumpCurse { get; set; } = new();
+
+    [JsonPropertyName("Pusher")]
+    public PusherSettings Pusher { get; set; } = new();
+
+    [JsonPropertyName("ThrowingKnife")]
+    public ThrowingKnifeSettings ThrowingKnife { get; set; } = new();
+
+    [JsonPropertyName("SmallButDeadly")]
+    public SmallButDeadlySettings SmallButDeadly { get; set; } = new();
+
     [JsonPropertyName("EventsEnabled")]
     public bool EventsEnabled { get; set; } = true;
 
@@ -853,7 +1241,7 @@ public sealed class PluginConfig : BasePluginConfig
     public int EventRepeatBlockRounds { get; set; } = 4;
 
     [JsonPropertyName("ChooseCarnivalSkillId")]
-    public string ChooseCarnivalSkillId { get; set; } = "FieldMedic";
+    public string ChooseCarnivalSkillId { get; set; } = "ChooseOneOfThree";
 
     [JsonPropertyName("FastBunnyHop")]
     public FastBunnyHopSettings FastBunnyHop { get; set; } = new();
@@ -861,7 +1249,7 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("Events")]
     public Dictionary<string, EventOverrideConfig> Events { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["NormalRound"] = new() { Enabled = true, Weight = 100 },
+        ["NormalRound"] = new() { Enabled = true, Weight = 10 },
         ["NoSkill"] = new() { Enabled = true, Weight = 10 },
         ["MoreSkills"] = new() { Enabled = true, Weight = 10 },
         ["SkillsPlusPlus"] = new() { Enabled = true, Weight = 5 },
@@ -876,6 +1264,10 @@ public sealed class PluginConfig : BasePluginConfig
         ["SwapOnHit"] = new() { Enabled = true, Weight = 10 },
         ["DecoyTeleport"] = new() { Enabled = true, Weight = 10 },
         ["ChickenMode"] = new() { Enabled = true, Weight = 10 },
+        ["Bankruptcy"] = new() { Enabled = true, Weight = 10 },
+        ["InfiniteAmmoMode"] = new() { Enabled = true, Weight = 10 },
+        ["DeadlyGrenades"] = new() { Enabled = true, Weight = 10 },
+        ["SmallButDeadly"] = new() { Enabled = true, Weight = 10 },
         ["InfiniteColoredSmoke"] = new() { Enabled = true, Weight = 10 },
         ["UnluckyCouples"] = new() { Enabled = true, Weight = 10 },
         ["SuperKnockback"] = new() { Enabled = true, Weight = 10 },
