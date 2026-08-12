@@ -1,11 +1,7 @@
 {
-  "SmokeGrenadeProjectile_CreateFunc": {
-    "signatures": {
-      "library": "server",
-      "windows": "48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 57 41 56 41 57 48 81 EC ? ? ? ? 48 8B B4 24 ? ? ? ? 4D 8B F8",
-      "linux": "55 4C 89 C1 48 89 E5 41 57 49 89 FF 41 56 45 89 CE 41 55 4D 89 C5 41 54 53 48 83 EC ? 48 89 55 ? 48 89 F2 48 89 FE"
-    }
-  },
+  "CServerSideClient_m_nDeltaTick": { "offsets": { "windows": 348, "linux": 348 } },
+  "INetworkGameServer_Slots": { "offsets": { "windows": 584, "linux": 584 } },
+  "INetworkServerService_GetIGameServer": { "offsets": { "windows": 23, "linux": 24 } },
   "HEGrenadeProjectile_CreateFunc": {
     "signatures": {
       "library": "server",

@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>Myrt1eSkill_Remake</RootNamespace>
     <AssemblyName>Myrt1eSkill_Remake</AssemblyName>
   </PropertyGroup>

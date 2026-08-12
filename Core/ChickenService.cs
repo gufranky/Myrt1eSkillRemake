@@ -167,12 +167,9 @@ public sealed class ChickenService : IDisposable
         }
     }
 
-    private static CBaseModelEntity? CreateModel(CCSPlayerPawn pawn)
+    private CBaseModelEntity? CreateModel(CCSPlayerPawn pawn)
     {
-        // The chicken model is an animated NPC model rather than a regular prop model.
-        // prop_dynamic may spawn successfully but reject it client-side, leaving only
-        // the hidden player pawn. The override variant permits arbitrary models.
-        var model = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic_override");
+        var model = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic");
         if (model is null)
         {
             return null;
@@ -189,9 +186,19 @@ public sealed class ChickenService : IDisposable
         model.Teleport(pawn.AbsOrigin, pawn.AbsRotation, null);
         model.DispatchSpawn();
         model.AcceptInput("InitializeSpawnFromWorld", pawn, pawn);
-        model.AcceptInput("SetScale", model, model, "1");
+        Utilities.SetStateChanged(model, "CBaseEntity", "m_CBodyComponent");
         model.AcceptInput("SetParent", pawn, pawn, "!activator");
         Utilities.SetStateChanged(model, "CBaseEntity", "m_CBodyComponent");
+        _plugin.AddTimer(0.01f, () =>
+        {
+            if (!model.IsValid)
+            {
+                return;
+            }
+
+            model.AcceptInput("SetScale", model, model, "1");
+            Utilities.SetStateChanged(model, "CBaseEntity", "m_CBodyComponent");
+        });
         return model;
     }
 

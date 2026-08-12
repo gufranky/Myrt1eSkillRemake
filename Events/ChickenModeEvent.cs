@@ -177,9 +177,7 @@ public sealed class ChickenModeEvent : RoundEventBase,
 
     private static CBaseModelEntity? CreateChickenModel(in RoundEventContext context, CCSPlayerPawn pawn)
     {
-        // The chicken model is not authored as a regular dynamic prop. Using the
-        // override entity keeps the attached replacement visible to clients.
-        var chicken = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic_override");
+        var chicken = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic");
         if (chicken is null)
         {
             return null;
@@ -197,9 +195,19 @@ public sealed class ChickenModeEvent : RoundEventBase,
         chicken.Teleport(pawn.AbsOrigin, pawn.AbsRotation, null);
         chicken.DispatchSpawn();
         chicken.AcceptInput("InitializeSpawnFromWorld", pawn, pawn);
-        chicken.AcceptInput("SetScale", chicken, chicken, "1");
+        Utilities.SetStateChanged(chicken, "CBaseEntity", "m_CBodyComponent");
         chicken.AcceptInput("SetParent", pawn, pawn, "!activator");
         Utilities.SetStateChanged(chicken, "CBaseEntity", "m_CBodyComponent");
+        context.Effects.AddTimer(0.01f, () =>
+        {
+            if (!chicken.IsValid)
+            {
+                return;
+            }
+
+            chicken.AcceptInput("SetScale", chicken, chicken, "1");
+            Utilities.SetStateChanged(chicken, "CBaseEntity", "m_CBodyComponent");
+        });
         return chicken;
     }
 

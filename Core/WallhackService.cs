@@ -269,6 +269,7 @@ public sealed class WallhackService : IDisposable
         if (start >= targets.Length)
         {
             _buildInProgress = false;
+            NetworkUpdateService.ForceFullUpdateToAllChunked();
             return;
         }
 
@@ -325,6 +326,7 @@ public sealed class WallhackService : IDisposable
             glow.SetModel(modelName);
             glow.Spawnflags = 256u;
             glow.Render = Color.FromArgb(1, 255, 255, 255);
+            glow.DispatchSpawn();
             glow.Glow.GlowColorOverride = target.Team == CsTeam.Terrorist
                 ? Color.FromArgb(255, 255, 165, 0)
                 : Color.FromArgb(255, 173, 216, 230);
@@ -332,7 +334,6 @@ public sealed class WallhackService : IDisposable
             glow.Glow.GlowTeam = -1;
             glow.Glow.GlowType = 3;
             glow.Glow.GlowRangeMin = 100;
-            glow.DispatchSpawn();
 
             relay.AcceptInput("FollowEntity", pawn, relay, "!activator");
             glow.AcceptInput("FollowEntity", relay, glow, "!activator");
