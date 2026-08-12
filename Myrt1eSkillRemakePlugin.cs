@@ -53,6 +53,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private GhostService _ghosts = null!;
     private ChickenService _chickens = null!;
     private HealingChickenService _healingChickens = null!;
+    private SpecialHeartCompanionService _specialHeart = null!;
     private FindThemService _findThem = null!;
     private KamikazeChickenService _kamikazeChickens = null!;
     private GlazService _glaz = null!;
@@ -125,6 +126,8 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _chickens.Load();
         _healingChickens = new HealingChickenService(this, Config.HealingChicken);
         _healingChickens.Load();
+        _specialHeart = new SpecialHeartCompanionService(this, Config.SpecialHeart);
+        _specialHeart.Load();
         _findThem = new FindThemService(Config.FindThem);
         _kamikazeChickens = new KamikazeChickenService(Config.KamikazeChicken, _explosions);
         _glaz = new GlazService();
@@ -167,6 +170,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _ghosts,
             _chickens,
             _healingChickens,
+            _specialHeart,
             _findThem,
             _kamikazeChickens,
             _glaz,
@@ -265,6 +269,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _ghosts?.Dispose();
         _chickens?.Dispose();
         _healingChickens?.Dispose();
+        _specialHeart?.Dispose();
         _findThem?.Dispose();
         _kamikazeChickens?.Dispose();
         _glaz?.Dispose();

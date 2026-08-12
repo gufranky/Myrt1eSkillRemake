@@ -1821,6 +1821,9 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("Chicken")]
     public ChickenSettings Chicken { get; set; } = new();
 
+    [JsonPropertyName("SpecialHeart")]
+    public SpecialHeartSettings SpecialHeart { get; set; } = new();
+
     [JsonPropertyName("HealingChicken")]
     public HealingChickenSettings HealingChicken { get; set; } = new();
 
@@ -2000,6 +2003,7 @@ public sealed class PluginConfig : BasePluginConfig
         ["NeckTilt"] = new() { Enabled = true, Weight = 10 },
         ["BigHead"] = new() { Enabled = true, Weight = 10 },
         ["FairDuel"] = new() { Enabled = true, Weight = 10 },
+        ["FragileEveryone"] = new() { Enabled = true, Weight = 10 },
         ["ManyChickens"] = new() { Enabled = true, Weight = 10 }
     };
 

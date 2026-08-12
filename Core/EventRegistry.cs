@@ -64,6 +64,7 @@ public sealed class EventRegistry
         registry.Register(new NeckTiltEvent(config.NeckTiltEvent, playerView));
         registry.Register(new BigHeadEvent(config.BigHeadEvent));
         registry.Register(new FairDuelEvent());
+        registry.Register(new FragileEveryoneEvent());
         registry.Register(new ManyChickensEvent(config.ManyChickensEvent, config.Chicken, navMesh, chickens));
         return registry;
     }
