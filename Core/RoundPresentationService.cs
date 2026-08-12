@@ -11,10 +11,7 @@ namespace Myrt1eSkill_Remake.Core;
 /// </summary>
 public sealed class RoundPresentationService
 {
-    // Keep the presentation in sync with the server's 60 Hz update cadence.
-    // The HUD is still skipped while a WASD menu is open and only active rounds
-    // are rendered, so this does not create a permanent background stream.
-    public static readonly TimeSpan HudUpdateInterval = TimeSpan.FromSeconds(1.0 / 60.0);
+    public static readonly TimeSpan HudUpdateInterval = TimeSpan.FromMilliseconds(100);
 
     private sealed record StatusLine(string Text, string Color);
 
@@ -26,6 +23,7 @@ public sealed class RoundPresentationService
     private DateTime _nextHudUpdateAt;
     private long _generation;
     private readonly Dictionary<uint, Dictionary<string, StatusLine>> _statusLines = new();
+    private readonly Dictionary<uint, (string Signature, string Content)> _hudCache = new();
 
     public RoundPresentationService(Myrt1eSkillRemakePlugin plugin, SkillManager skills)
     {
@@ -41,6 +39,7 @@ public sealed class RoundPresentationService
         _hudExpiresAt = Expiry(now, _plugin.Config.SkillHudDuration);
         _descriptionExpiresAt = Expiry(now, _plugin.Config.SkillDescriptionDuration);
         _nextHudUpdateAt = DateTime.MinValue;
+        _hudCache.Clear();
 
         var players = EligiblePlayers().ToArray();
         foreach (var player in players)
@@ -68,6 +67,7 @@ public sealed class RoundPresentationService
         _descriptionExpiresAt = DateTime.MinValue;
         _nextHudUpdateAt = DateTime.MinValue;
         _statusLines.Clear();
+        _hudCache.Clear();
     }
 
     public void SetStatusLine(
@@ -94,6 +94,7 @@ public sealed class RoundPresentationService
         }
 
         lines[sourceId] = next;
+        _hudCache.Remove(player.Index);
         _nextHudUpdateAt = DateTime.MinValue;
     }
 
@@ -105,6 +106,7 @@ public sealed class RoundPresentationService
         }
 
         lines.Remove(sourceId);
+        _hudCache.Remove(player.Index);
         _nextHudUpdateAt = DateTime.MinValue;
         if (lines.Count == 0)
         {
@@ -137,8 +139,26 @@ public sealed class RoundPresentationService
                 continue;
             }
 
-            player.PrintToCenterHtml(BuildHud(player, plan, showDescriptions));
+            var signature = BuildSignature(player, plan, showDescriptions);
+            if (!_hudCache.TryGetValue(player.Index, out var cached)
+                || !string.Equals(cached.Signature, signature, StringComparison.Ordinal))
+            {
+                cached = (signature, "<jRS/>" + BuildHud(player, plan, showDescriptions));
+                _hudCache[player.Index] = cached;
+            }
+
+            player.PrintToCenterHtml(cached.Content);
         }
+    }
+
+    private string BuildSignature(CCSPlayerController player, RoundPlan plan, bool showDescriptions)
+    {
+        var assigned = string.Join("|", _skills.GetAssignedSkills(player).Select(skill => $"{skill.Id}:{skill.DisplayName}:{skill.Description}"));
+        var events = string.Join("|", plan.Events.Select(item => $"{item.Id}:{item.DisplayName}:{item.Description}"));
+        var statuses = _statusLines.TryGetValue(player.Index, out var lines)
+            ? string.Join("|", lines.Select(item => $"{item.Key}:{item.Value.Text}:{item.Value.Color}"))
+            : string.Empty;
+        return $"{_generation}|{showDescriptions}|{events}|{assigned}|{statuses}";
     }
 
     private void AnnounceOwnSkills(CCSPlayerController player)
