@@ -122,6 +122,7 @@ public sealed class SkillEventRouter
 
     public HookResult OnPlayerJump(EventPlayerJump @event, GameEventInfo info)
     {
+        _events.Dispatch<IRoundEventPlayerJump>("EventRound.PlayerJump", (handler, context) => handler.OnPlayerJump(context, @event));
         _skills.DispatchForPlayer<IPlayerJumpSkill>(
             @event.Userid,
             "Event.PlayerJump",

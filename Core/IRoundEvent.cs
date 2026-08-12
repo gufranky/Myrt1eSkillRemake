@@ -44,6 +44,11 @@ public interface IRoundEventWeaponFire
     void OnWeaponFire(in RoundEventContext context, EventWeaponFire @event);
 }
 
+public interface IRoundEventPlayerJump
+{
+    void OnPlayerJump(in RoundEventContext context, EventPlayerJump @event);
+}
+
 public interface IRoundEventWeaponReload
 {
     void OnWeaponReload(in RoundEventContext context, EventWeaponReload @event);

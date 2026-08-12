@@ -54,6 +54,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private ChickenService _chickens = null!;
     private HealingChickenService _healingChickens = null!;
     private SpecialHeartCompanionService _specialHeart = null!;
+    private HelpingHandService _helpingHand = null!;
     private FindThemService _findThem = null!;
     private KamikazeChickenService _kamikazeChickens = null!;
     private GlazService _glaz = null!;
@@ -128,6 +129,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _healingChickens.Load();
         _specialHeart = new SpecialHeartCompanionService(this, Config.SpecialHeart);
         _specialHeart.Load();
+        _helpingHand = new HelpingHandService(Config.HelpingHand);
         _findThem = new FindThemService(Config.FindThem);
         _kamikazeChickens = new KamikazeChickenService(Config.KamikazeChicken, _explosions);
         _glaz = new GlazService();
@@ -171,6 +173,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _chickens,
             _healingChickens,
             _specialHeart,
+            _helpingHand,
             _findThem,
             _kamikazeChickens,
             _glaz,
@@ -182,7 +185,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _mindHack,
             _ninjaVisibility,
             _navMesh);
-        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds, _navMesh, _fog, _playerView, _chickens);
+        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds, _navMesh, _fog, _playerView, _chickens, _helpingHand);
         var performance = new PerformanceMonitor(this);
         _skillManager = new SkillManager(this, _registry, performance);
         _silentSounds = new SilentSoundService(this, _skillManager);

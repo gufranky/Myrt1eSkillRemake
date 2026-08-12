@@ -38,6 +38,7 @@ public sealed class SkillRegistry
         ChickenService chickens,
         HealingChickenService healingChickens,
         SpecialHeartCompanionService specialHeart,
+        HelpingHandService helpingHand,
         FindThemService findThem,
         KamikazeChickenService kamikazeChickens,
         GlazService glaz,
@@ -123,6 +124,7 @@ public sealed class SkillRegistry
         registry.Register(antiFlash);
         registry.Register(new ChickenSkill(chickens));
         registry.Register(new SpecialHeartSkill(config.SpecialHeart, specialHeart));
+        registry.Register(new HelpingHandSkill(helpingHand));
         registry.Register(new HealingChickenSkill(healingChickens));
         registry.Register(new FindThemSkill(config.FindThem, findThem));
         registry.Register(new KamikazeChickenSkill(config.KamikazeChicken, kamikazeChickens));
