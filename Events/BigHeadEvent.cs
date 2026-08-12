@@ -16,7 +16,7 @@ public sealed class BigHeadEvent : RoundEventBase, IRoundEventPlayerSpawn
 {
     private const string HeadModel = "models/props_junk/watermelon01.vmdl";
     private readonly BigHeadEventSettings _settings;
-    private readonly Dictionary<int, CDynamicProp> _heads = new();
+    private readonly Dictionary<int, CBaseModelEntity> _heads = new();
     private bool _active;
 
     public BigHeadEvent(BigHeadEventSettings settings)
@@ -85,7 +85,9 @@ public sealed class BigHeadEvent : RoundEventBase, IRoundEventPlayerSpawn
             return;
         }
 
-        var head = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic_override");
+        // watermelon01.vmdl carries physics propdata; dynamic props are deleted by
+        // the engine for this model. Use the physics multiplayer entity instead.
+        var head = Utilities.CreateEntityByName<CPhysicsPropMultiplayer>("prop_physics_multiplayer");
         if (head is null)
         {
             return;
@@ -97,11 +99,31 @@ public sealed class BigHeadEvent : RoundEventBase, IRoundEventPlayerSpawn
         var scale = float.IsFinite(_settings.HeadScale)
             ? Math.Clamp(_settings.HeadScale, 1.05f, 3.0f)
             : 1.5f;
+        var skeleton = head.CBodyComponent?.SceneNode?.GetSkeletonInstance();
+        if (skeleton is not null)
+        {
+            skeleton.Scale = scale;
+        }
         head.AcceptInput("SetScale", head, head, scale.ToString(CultureInfo.InvariantCulture));
         head.AcceptInput("SetParent", pawn, head, "!activator");
         head.AcceptInput("SetParentAttachmentMaintainOffset", pawn, head, "head");
         head.Teleport(new Vector(0, 0, 64), new QAngle(0, 0, 0), null);
         Utilities.SetStateChanged(head, "CBaseEntity", "m_CBodyComponent");
+        effects.AddTimer(0.01f, () =>
+        {
+            if (!head.IsValid)
+            {
+                return;
+            }
+
+            var currentSkeleton = head.CBodyComponent?.SceneNode?.GetSkeletonInstance();
+            if (currentSkeleton is not null)
+            {
+                currentSkeleton.Scale = scale;
+            }
+            head.AcceptInput("SetScale", head, head, scale.ToString(CultureInfo.InvariantCulture));
+            Utilities.SetStateChanged(head, "CBaseEntity", "m_CBodyComponent");
+        });
         _heads[player.Slot] = head;
         effects.TrackEntity(head);
     }

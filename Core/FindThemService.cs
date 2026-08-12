@@ -142,7 +142,8 @@ public sealed class FindThemService : IDisposable
                 targetOrigin,
                 scout.Movement,
                 _settings.SpeedMultiplier,
-                _settings.MaximumExtraStep);
+                _settings.MaximumExtraStep,
+                allowTeleport: false);
         }
 
         if (scouts.Count == 0)

@@ -12,7 +12,11 @@ namespace Myrt1eSkill_Remake.Core;
 public static class ChickenMovementBoost
 {
     public const int RepathAfterStuckTicks = 24;
+    public const int TeleportAfterStuckTicks = 48;
     public const float RepathMinimumDistance = 160.0f;
+    public const float TeleportDistance = 1800.0f;
+    public const float TeleportDistanceSquared = TeleportDistance * TeleportDistance;
+    private const float TeleportOffset = 96.0f;
 
     public sealed class State
     {
@@ -26,7 +30,8 @@ public static class ChickenMovementBoost
         State state,
         float speedMultiplier,
         float maximumExtraStep,
-        float maximumSpeed = float.PositiveInfinity)
+        float maximumSpeed = float.PositiveInfinity,
+        bool allowTeleport = true)
     {
         var origin = chicken.AbsOrigin;
         if (!chicken.IsValid || origin is null)
@@ -46,6 +51,34 @@ public static class ChickenMovementBoost
         var dy = current.Y - previous.Y;
         var movement = MathF.Sqrt(dx * dx + dy * dy);
         var distanceToTargetSquared = DistanceSquared(current, targetOrigin);
+
+        // Native chicken navigation can remain on a stale/disconnected path
+        // after a long teleport or round transition. Recover near the leader
+        // instead of letting every companion run forever toward an unreachable
+        // waypoint. The offset avoids spawning directly inside the target.
+        if (allowTeleport && distanceToTargetSquared >= TeleportDistanceSquared)
+        {
+            var awayX = current.X - targetOrigin.X;
+            var awayY = current.Y - targetOrigin.Y;
+            var length = MathF.Sqrt(awayX * awayX + awayY * awayY);
+            if (!float.IsFinite(length) || length < 0.01f)
+            {
+                awayX = 1.0f;
+                awayY = 0.0f;
+                length = 1.0f;
+            }
+
+            var destination = new Vector(
+                targetOrigin.X + awayX / length * TeleportOffset,
+                targetOrigin.Y + awayY / length * TeleportOffset,
+                targetOrigin.Z + 2.0f);
+            chicken.Teleport(destination, chicken.AbsRotation, new Vector(0.0f, 0.0f, 0.0f));
+            state.LastOrigin = destination;
+            state.StuckTicks = 0;
+            chicken.RepathTimer.Timestamp = 0.0f;
+            chicken.MoveRateThrottleTimer.Timestamp = 0.0f;
+            return;
+        }
 
         if (movement > 0.05f && movement < 32.0f)
         {
@@ -78,6 +111,14 @@ public static class ChickenMovementBoost
                 // Leader path immediately. That path is backed by CS2 NavMesh.
                 chicken.RepathTimer.Timestamp = 0.0f;
                 chicken.MoveRateThrottleTimer.Timestamp = 0.0f;
+                if (allowTeleport
+                    && state.StuckTicks >= TeleportAfterStuckTicks
+                    && distanceToTargetSquared >= 512.0f * 512.0f)
+                {
+                    TeleportNearTarget(chicken, targetOrigin, current);
+                    state.StuckTicks = 0;
+                    return;
+                }
                 state.StuckTicks = 0;
             }
         }
@@ -87,6 +128,27 @@ public static class ChickenMovementBoost
         }
 
         state.LastOrigin = current;
+    }
+
+    private static void TeleportNearTarget(CChicken chicken, Vector targetOrigin, Vector current)
+    {
+        var awayX = current.X - targetOrigin.X;
+        var awayY = current.Y - targetOrigin.Y;
+        var length = MathF.Sqrt(awayX * awayX + awayY * awayY);
+        if (!float.IsFinite(length) || length < 0.01f)
+        {
+            awayX = 1.0f;
+            awayY = 0.0f;
+            length = 1.0f;
+        }
+
+        var destination = new Vector(
+            targetOrigin.X + awayX / length * TeleportOffset,
+            targetOrigin.Y + awayY / length * TeleportOffset,
+            targetOrigin.Z + 2.0f);
+        chicken.Teleport(destination, chicken.AbsRotation, new Vector(0.0f, 0.0f, 0.0f));
+        chicken.RepathTimer.Timestamp = 0.0f;
+        chicken.MoveRateThrottleTimer.Timestamp = 0.0f;
     }
 
     public static float CalculateExtraDistance(

@@ -7,6 +7,7 @@ using Myrt1eSkill_Remake.Core;
 namespace Myrt1eSkill_Remake.Events;
 
 public sealed class ChickenModeEvent : RoundEventBase,
+    IRoundEventTick,
     IRoundEventPlayerSpawn,
     IRoundEventItemPickup,
     IRoundEventCheckTransmit
@@ -196,9 +197,15 @@ public sealed class ChickenModeEvent : RoundEventBase,
         chicken.DispatchSpawn();
         chicken.AcceptInput("InitializeSpawnFromWorld", pawn, pawn);
         Utilities.SetStateChanged(chicken, "CBaseEntity", "m_CBodyComponent");
+        var skeleton = chicken.CBodyComponent?.SceneNode?.GetSkeletonInstance();
+        if (skeleton is not null)
+        {
+            skeleton.Scale = 1.0f;
+        }
+        Utilities.SetStateChanged(chicken, "CBaseEntity", "m_CBodyComponent");
         chicken.AcceptInput("SetParent", pawn, pawn, "!activator");
         Utilities.SetStateChanged(chicken, "CBaseEntity", "m_CBodyComponent");
-        context.Effects.AddTimer(0.01f, () =>
+        Server.NextFrame(() =>
         {
             if (!chicken.IsValid)
             {
@@ -209,6 +216,34 @@ public sealed class ChickenModeEvent : RoundEventBase,
             Utilities.SetStateChanged(chicken, "CBaseEntity", "m_CBodyComponent");
         });
         return chicken;
+    }
+
+    public void OnTick(in RoundEventContext context)
+    {
+        if (!_active)
+        {
+            return;
+        }
+
+        foreach (var (slot, state) in _states.ToArray())
+        {
+            var player = Utilities.GetPlayerFromSlot(slot);
+            if (player is not { IsValid: true, PawnIsAlive: true })
+            {
+                continue;
+            }
+
+            var pawn = player.PlayerPawn.Value;
+            if (pawn is not { IsValid: true } || state.Chicken is not { IsValid: true })
+            {
+                ApplyChicken(context, player);
+                continue;
+            }
+
+            pawn.VelocityModifier = ChickenSpeedMultiplier;
+            Utilities.SetStateChanged(pawn, "CCSPlayerPawn", "m_flVelocityModifier");
+            RecordHiddenEntities(player);
+        }
     }
 
     private void RecordHiddenEntities(CCSPlayerController player)

@@ -122,7 +122,8 @@ public sealed class KamikazeChickenService : IDisposable
             active.Movement,
             _settings.SpeedMultiplier,
             _settings.MaximumExtraStep,
-            _settings.MaximumSpeed);
+            _settings.MaximumSpeed,
+            allowTeleport: false);
         var triggerDistance = PositiveFiniteOr(_settings.DetonationDistance, 120.0f);
         if (DistanceSquared(chickenOrigin, targetOrigin) > triggerDistance * triggerDistance)
         {
