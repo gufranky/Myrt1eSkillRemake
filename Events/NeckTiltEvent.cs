@@ -6,7 +6,7 @@ using Myrt1eSkill_Remake.Core;
 
 namespace Myrt1eSkill_Remake.Events;
 
-public sealed class NeckTiltEvent : RoundEventBase, IRoundEventTick, IRoundEventPlayerSpawn
+public sealed class NeckTiltEvent : RoundEventBase, IRoundEventPlayerSpawn
 {
     private readonly NeckTiltEventSettings _settings;
     private readonly PlayerViewService _view;
@@ -37,17 +37,13 @@ public sealed class NeckTiltEvent : RoundEventBase, IRoundEventTick, IRoundEvent
     public override void OnApplied(in RoundEventContext context)
     {
         _active = true;
-        context.Effects.RegisterCleanup(() => _active = false);
+        context.Effects.RegisterCleanup(() =>
+        {
+            _active = false;
+            ClearRoll();
+        });
         ApplyToAll();
         PrintToChatAll("[娱乐事件] 歪脖子：所有人的视角都歪过来了！");
-    }
-
-    public void OnTick(in RoundEventContext context)
-    {
-        if (_active)
-        {
-            ApplyToAll();
-        }
     }
 
     public void OnPlayerSpawn(in RoundEventContext context, EventPlayerSpawn @event)
@@ -83,5 +79,25 @@ public sealed class NeckTiltEvent : RoundEventBase, IRoundEventTick, IRoundEvent
             ? Math.Clamp(_settings.RollDegrees, -45.0f, 45.0f)
             : 25.0f;
         _view.TrySet(pawn, new QAngle(current.X, current.Y, roll));
+    }
+
+    private void ClearRoll()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (player is not { IsValid: true, PawnIsAlive: true })
+            {
+                continue;
+            }
+
+            var pawn = player.PlayerPawn.Value;
+            if (pawn is not { IsValid: true })
+            {
+                continue;
+            }
+
+            var current = pawn.EyeAngles;
+            _view.TrySet(pawn, new QAngle(current.X, current.Y, 0.0f));
+        }
     }
 }
