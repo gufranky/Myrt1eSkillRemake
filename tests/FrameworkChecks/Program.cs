@@ -596,8 +596,8 @@ static void CheckReactiveArmorDescriptor()
     Assert(ReactiveArmorSkill.AddCharge(2, -1) == 3
            && ReactiveArmorSkill.AddCharge(2, 2) == 2,
         "ReactiveArmor charge stacking must support unlimited and configured caps.");
-    Assert(RoundPresentationService.HudUpdateInterval.TotalMilliseconds == 100,
-        "The global HUD must refresh every 100 ms to prevent visible flicker.");
+    Assert(Math.Abs(RoundPresentationService.HudUpdateInterval.TotalMilliseconds - (1000.0 / 60.0)) < 0.01,
+        "The global HUD must refresh at 60 Hz.");
 }
 
 static void CheckHurtTeleportRouting()

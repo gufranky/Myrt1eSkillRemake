@@ -11,7 +11,10 @@ namespace Myrt1eSkill_Remake.Core;
 /// </summary>
 public sealed class RoundPresentationService
 {
-    public static readonly TimeSpan HudUpdateInterval = TimeSpan.FromMilliseconds(100);
+    // Keep the presentation in sync with the server's 60 Hz update cadence.
+    // The HUD is still skipped while a WASD menu is open and only active rounds
+    // are rendered, so this does not create a permanent background stream.
+    public static readonly TimeSpan HudUpdateInterval = TimeSpan.FromSeconds(1.0 / 60.0);
 
     private sealed record StatusLine(string Text, string Color);
 
@@ -118,9 +121,7 @@ public sealed class RoundPresentationService
             return;
         }
 
-        // Center HTML only needs a small refresh cadence to remain visible. Sending
-        // it every server tick floods each client's reliable net channel and can
-        // cause snapshot backlogs, timeouts, or a client-side hang.
+        // Refresh at 60 Hz while the round HUD is active.
         if (now < _nextHudUpdateAt)
         {
             return;
