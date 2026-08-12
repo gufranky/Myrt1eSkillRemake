@@ -44,6 +44,11 @@ public interface IRoundEventWeaponFire
     void OnWeaponFire(in RoundEventContext context, EventWeaponFire @event);
 }
 
+public interface IRoundEventWeaponReload
+{
+    void OnWeaponReload(in RoundEventContext context, EventWeaponReload @event);
+}
+
 public interface IRoundEventDecoyStarted
 {
     void OnDecoyStarted(in RoundEventContext context, EventDecoyStarted @event);

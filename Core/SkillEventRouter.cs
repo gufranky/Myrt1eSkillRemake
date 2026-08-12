@@ -131,6 +131,9 @@ public sealed class SkillEventRouter
 
     public HookResult OnWeaponReload(EventWeaponReload @event, GameEventInfo info)
     {
+        _events.Dispatch<IRoundEventWeaponReload>(
+            "EventRound.WeaponReload",
+            (handler, context) => handler.OnWeaponReload(context, @event));
         _skills.DispatchForPlayer<IWeaponReloadSkill>(
             @event.Userid,
             "Event.WeaponReload",

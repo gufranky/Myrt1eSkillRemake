@@ -717,6 +717,36 @@ public sealed class FindThemSettings
     public float MaximumExtraStep { get; set; } = 10.0f;
 }
 
+public sealed class FindHimEventSettings
+{
+    [JsonPropertyName("FindRadius")]
+    public float FindRadius { get; set; } = 100.0f;
+
+    [JsonPropertyName("RevealDelaySeconds")]
+    public float RevealDelaySeconds { get; set; } = 30.0f;
+
+    [JsonPropertyName("ChickenHealth")]
+    public int ChickenHealth { get; set; } = 100;
+}
+
+public sealed class NeckTiltEventSettings
+{
+    [JsonPropertyName("RollDegrees")]
+    public float RollDegrees { get; set; } = 25.0f;
+}
+
+public sealed class BigHeadEventSettings
+{
+    [JsonPropertyName("HeadScale")]
+    public float HeadScale { get; set; } = 1.5f;
+}
+
+public sealed class ManyChickensEventSettings
+{
+    [JsonPropertyName("ChickenCount")]
+    public int ChickenCount { get; set; } = 50;
+}
+
 public sealed class KamikazeChickenSettings
 {
     [JsonPropertyName("CooldownSeconds")]
@@ -1797,6 +1827,18 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("FindThem")]
     public FindThemSettings FindThem { get; set; } = new();
 
+    [JsonPropertyName("FindHimEvent")]
+    public FindHimEventSettings FindHimEvent { get; set; } = new();
+
+    [JsonPropertyName("NeckTiltEvent")]
+    public NeckTiltEventSettings NeckTiltEvent { get; set; } = new();
+
+    [JsonPropertyName("BigHeadEvent")]
+    public BigHeadEventSettings BigHeadEvent { get; set; } = new();
+
+    [JsonPropertyName("ManyChickensEvent")]
+    public ManyChickensEventSettings ManyChickensEvent { get; set; } = new();
+
     [JsonPropertyName("KamikazeChicken")]
     public KamikazeChickenSettings KamikazeChicken { get; set; } = new();
 
@@ -1933,6 +1975,10 @@ public sealed class PluginConfig : BasePluginConfig
         ["Bankruptcy"] = new() { Enabled = true, Weight = 10 },
         ["InfiniteAmmoMode"] = new() { Enabled = true, Weight = 10 },
         ["DeadlyGrenades"] = new() { Enabled = true, Weight = 10 },
+        ["BirdshotKing"] = new() { Enabled = true, Weight = 10 },
+        ["ReloadTeleport"] = new() { Enabled = true, Weight = 10 },
+        ["Stranger"] = new() { Enabled = true, Weight = 10 },
+        ["CarefulShot"] = new() { Enabled = true, Weight = 10 },
         ["SmallButDeadly"] = new() { Enabled = true, Weight = 10 },
         ["InfiniteColoredSmoke"] = new() { Enabled = true, Weight = 10 },
         ["UnluckyCouples"] = new() { Enabled = true, Weight = 10 },
@@ -1948,7 +1994,13 @@ public sealed class PluginConfig : BasePluginConfig
         ["SuperpowerXray"] = new() { Enabled = true, Weight = 10 },
         ["Xray"] = new() { Enabled = true, Weight = 10 },
         ["TopTierParty"] = new() { Enabled = true, Weight = 3 },
-        ["TopTierPartyPlusPlus"] = new() { Enabled = true, Weight = 1 }
+        ["TopTierPartyPlusPlus"] = new() { Enabled = true, Weight = 1 },
+        ["MistAround"] = new() { Enabled = true, Weight = 10 },
+        ["FindHim"] = new() { Enabled = true, Weight = 10 },
+        ["NeckTilt"] = new() { Enabled = true, Weight = 10 },
+        ["BigHead"] = new() { Enabled = true, Weight = 10 },
+        ["FairDuel"] = new() { Enabled = true, Weight = 10 },
+        ["ManyChickens"] = new() { Enabled = true, Weight = 10 }
     };
 
     [JsonPropertyName("PerformanceLoggingEnabled")]

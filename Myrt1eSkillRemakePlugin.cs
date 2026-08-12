@@ -1,7 +1,10 @@
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Entities;
+using CounterStrikeSharp.API.Modules.Utils;
 using Microsoft.Extensions.Logging;
 using Myrt1eSkill_Remake.Configuration;
 using Myrt1eSkill_Remake.Core;
@@ -62,6 +65,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private SilentSoundService _silentSounds = null!;
     private MindHackService _mindHack = null!;
     private NavMeshService _navMesh = null!;
+    private FogService _fog = null!;
     private NinjaVisibilityService _ninjaVisibility = null!;
     private WasdMenuService _wasdMenus = null!;
 
@@ -76,9 +80,11 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
 
     public override void Load(bool hotReload)
     {
+        RegisterListener<Listeners.OnServerPrecacheResources>(OnServerPrecacheResources);
         _wasdMenus = new WasdMenuService(this);
         _navMesh = new NavMeshService(this);
         _navMesh.Load();
+        _fog = new FogService();
         _explosions = new ExplosiveProjectileService(this, Config.ExplosiveShot);
         _explosions.Load();
         _barrels = new ExplodingBarrelService(this, Config.ExplodingBarrel, _explosions);
@@ -172,7 +178,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _mindHack,
             _ninjaVisibility,
             _navMesh);
-        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds, _navMesh);
+        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds, _navMesh, _fog, _playerView, _chickens);
         var performance = new PerformanceMonitor(this);
         _skillManager = new SkillManager(this, _registry, performance);
         _silentSounds = new SilentSoundService(this, _skillManager);
@@ -228,6 +234,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
 
     public override void Unload(bool hotReload)
     {
+        RemoveListener<Listeners.OnServerPrecacheResources>(OnServerPrecacheResources);
         _wasdMenus?.CloseAll();
         _navMesh?.Unload();
         _silentSounds?.Unload();
@@ -270,6 +277,9 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         PluginText.Reset();
         Logger.LogInformation("{Plugin} unloaded (hotReload={HotReload})", ModuleName, hotReload);
     }
+
+    private static void OnServerPrecacheResources(ResourceManifest manifest) =>
+        manifest.AddResource("models/props_junk/watermelon01.vmdl");
 
     private void OnStatusCommand(CCSPlayerController? player, CommandInfo command)
     {

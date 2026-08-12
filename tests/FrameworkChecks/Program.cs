@@ -47,6 +47,10 @@ var checks = new List<(string Name, Action Run)>
     ("Bankruptcy resets the economy to 800 dollars", CheckBankruptcyDescriptor),
     ("InfiniteAmmoMode owns and blocks global ammo rules", CheckInfiniteAmmoModeDescriptor),
     ("DeadlyGrenades owns the HE-only loadout and economy rules", CheckDeadlyGrenadesDescriptor),
+    ("BirdshotKing owns the no-spread SSG 08 loadout", CheckBirdshotKingDescriptor),
+    ("ReloadTeleport consumes round reload callbacks", CheckReloadTeleportDescriptor),
+    ("Stranger owns shared models random spawns radar and self-friendly-fire", CheckStrangerDescriptor),
+    ("CarefulShot consumes fire and hurt callbacks", CheckCarefulShotDescriptor),
     ("SmallButDeadly owns scale speed and health rules", CheckSmallButDeadlyDescriptor),
     ("InfiniteColoredSmoke consumes grenade and entity callbacks", CheckInfiniteColoredSmokeRouting),
     ("UnluckyCouples consumes pre-damage callbacks", CheckUnluckyCouplesRouting),
@@ -818,6 +822,64 @@ static void CheckDeadlyGrenadesDescriptor()
     Assert(deadlyGrenades.Descriptor.BlockedSkillTags.Contains("weapon-ammo-control")
            && deadlyGrenades.Descriptor.BlockedSkillTags.Contains("hegrenade-behavior-control"),
         "DeadlyGrenades must suppress redundant ammo and HE behavior skills.");
+}
+
+static void CheckBirdshotKingDescriptor()
+{
+    var birdshot = new BirdshotKingEvent();
+    var deadlyGrenades = new DeadlyGrenadesEvent(new DeadlyGrenadesSettings());
+    var inaccurate = new InaccurateEvent(new InaccurateSettings());
+    Assert(birdshot is IRoundEventPlayerSpawn && birdshot is IRoundEventItemPickup,
+        "BirdshotKing must reapply its loadout on spawn and item pickup.");
+    Assert(birdshot.Descriptor.ExclusiveTags.Contains("weapon-loadout-rules")
+           && birdshot.Descriptor.ExclusiveTags.Contains("buy-rules")
+           && birdshot.Descriptor.ExclusiveTags.Contains("weapon-spread-rules"),
+        "BirdshotKing must own loadout, shop and spread rules.");
+    Assert(BirdshotKingEvent.BirdshotWeapon == "weapon_ssg08"
+           && BirdshotKingEvent.BuyAllowGunsValue == 0
+           && BirdshotKingEvent.BuyTimeValue == 0.0f,
+        "BirdshotKing must use SSG 08 and close the shop.");
+    Assert(!CompatibilityResolver.CanCombine(new[] { birdshot }, deadlyGrenades),
+        "BirdshotKing must conflict with DeadlyGrenades loadout rules.");
+    Assert(!CompatibilityResolver.CanCombine(new[] { birdshot }, inaccurate),
+        "BirdshotKing must conflict with Inaccurate spread rules.");
+}
+
+static void CheckReloadTeleportDescriptor()
+{
+    var reloadTeleport = new ReloadTeleportEvent(null!);
+    var randomTeleport = new RandomTeleportSkill(null!);
+    Assert(reloadTeleport is IRoundEventWeaponReload,
+        "ReloadTeleport must consume round weapon-reload callbacks.");
+    Assert(reloadTeleport.Descriptor.ExclusiveTags.Contains("reload-behavior-rules")
+           && reloadTeleport.Descriptor.ExclusiveTags.Contains("player-teleport-rules"),
+        "ReloadTeleport must own reload-triggered teleport behavior.");
+    Assert(reloadTeleport.Descriptor.BlockedSkillTags.Overlaps(randomTeleport.Descriptor.ConflictTags),
+        "ReloadTeleport must block competing personal teleport controllers.");
+}
+
+static void CheckStrangerDescriptor()
+{
+    var stranger = new StrangerEvent(null!);
+    Assert(stranger is IRoundEventPreDamage,
+        "Stranger must convert teammate damage into self-damage.");
+    Assert(stranger.Descriptor.ExclusiveTags.Contains("player-model-rules")
+           && stranger.Descriptor.ExclusiveTags.Contains("player-spawn-rules")
+           && stranger.Descriptor.ExclusiveTags.Contains("radar-rules")
+           && stranger.Descriptor.ExclusiveTags.Contains("friendly-fire-damage-transform"),
+        "Stranger must own model, spawn, radar and friendly-fire rules.");
+    Assert(stranger.Descriptor.BlockedSkillTags.Contains("player-model-control")
+           && stranger.Descriptor.BlockedSkillTags.Contains("player-teleport-control"),
+        "Stranger must block skills that would overwrite its model or spawn positioning.");
+}
+
+static void CheckCarefulShotDescriptor()
+{
+    var carefulShot = new CarefulShotEvent();
+    Assert(carefulShot is IRoundEventWeaponFire && carefulShot is IRoundEventPlayerHurt,
+        "CarefulShot must correlate weapon-fire and player-hurt callbacks.");
+    Assert(carefulShot.Descriptor.ExclusiveTags.Contains("miss-shot-penalty"),
+        "CarefulShot must own the missed-shot penalty rule.");
 }
 
 static void CheckSmallButDeadlyDescriptor()

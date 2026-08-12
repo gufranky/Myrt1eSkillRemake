@@ -14,7 +14,10 @@ public sealed class EventRegistry
         PluginConfig config,
         WallhackService wallhack,
         DeafSoundService deafSounds,
-        NavMeshService navMesh)
+        NavMeshService navMesh,
+        FogService fog,
+        PlayerViewService playerView,
+        ChickenService chickens)
     {
         var registry = new EventRegistry();
         registry.Register(new NormalRoundEvent());
@@ -36,6 +39,10 @@ public sealed class EventRegistry
         registry.Register(new BankruptcyEvent());
         registry.Register(new InfiniteAmmoModeEvent());
         registry.Register(new DeadlyGrenadesEvent(config.DeadlyGrenades));
+        registry.Register(new BirdshotKingEvent());
+        registry.Register(new ReloadTeleportEvent(navMesh));
+        registry.Register(new StrangerEvent(navMesh));
+        registry.Register(new CarefulShotEvent());
         registry.Register(new SmallButDeadlyEvent(config.SmallButDeadly));
         registry.Register(new InfiniteColoredSmokeEvent());
         registry.Register(new UnluckyCouplesEvent(config.UnluckyCouples, wallhack));
@@ -52,6 +59,12 @@ public sealed class EventRegistry
         registry.Register(new XrayEvent(wallhack));
         registry.Register(new TopTierPartyEvent());
         registry.Register(new TopTierPartyPlusPlusEvent());
+        registry.Register(new MistAroundEvent(fog));
+        registry.Register(new FindHimEvent(config.FindHimEvent, navMesh, wallhack));
+        registry.Register(new NeckTiltEvent(config.NeckTiltEvent, playerView));
+        registry.Register(new BigHeadEvent(config.BigHeadEvent));
+        registry.Register(new FairDuelEvent());
+        registry.Register(new ManyChickensEvent(config.ManyChickensEvent, config.Chicken, navMesh, chickens));
         return registry;
     }
 
