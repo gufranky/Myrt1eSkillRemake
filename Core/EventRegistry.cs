@@ -18,7 +18,8 @@ public sealed class EventRegistry
         FogService fog,
         PlayerViewService playerView,
         ChickenService chickens,
-        HelpingHandService helpingHand)
+        HelpingHandService helpingHand,
+        ExplosiveProjectileService explosions)
     {
         var registry = new EventRegistry();
         registry.Register(new NormalRoundEvent());
@@ -67,6 +68,7 @@ public sealed class EventRegistry
         registry.Register(new FairDuelEvent());
         registry.Register(new FragileEveryoneEvent());
         registry.Register(new HelpingHandEvent(helpingHand));
+        registry.Register(new BombardmentZoneEvent(config.BombardmentZone, explosions, navMesh));
         registry.Register(new ManyChickensEvent(config.ManyChickensEvent, config.Chicken, navMesh, chickens));
         return registry;
     }

@@ -1827,6 +1827,9 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("HelpingHand")]
     public HelpingHandSettings HelpingHand { get; set; } = new();
 
+    [JsonPropertyName("BombardmentZone")]
+    public BombardmentZoneSettings BombardmentZone { get; set; } = new();
+
     [JsonPropertyName("HealingChicken")]
     public HealingChickenSettings HealingChicken { get; set; } = new();
 
@@ -2008,6 +2011,7 @@ public sealed class PluginConfig : BasePluginConfig
         ["FairDuel"] = new() { Enabled = true, Weight = 10 },
         ["FragileEveryone"] = new() { Enabled = true, Weight = 10 },
         ["HelpingHand"] = new() { Enabled = true, Weight = 10 },
+        ["BombardmentZone"] = new() { Enabled = true, Weight = 10 },
         ["ManyChickens"] = new() { Enabled = true, Weight = 10 }
     };
 

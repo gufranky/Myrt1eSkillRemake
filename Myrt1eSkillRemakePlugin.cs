@@ -185,7 +185,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _mindHack,
             _ninjaVisibility,
             _navMesh);
-        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds, _navMesh, _fog, _playerView, _chickens, _helpingHand);
+        _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds, _navMesh, _fog, _playerView, _chickens, _helpingHand, _explosions);
         var performance = new PerformanceMonitor(this);
         _skillManager = new SkillManager(this, _registry, performance);
         _silentSounds = new SilentSoundService(this, _skillManager);
