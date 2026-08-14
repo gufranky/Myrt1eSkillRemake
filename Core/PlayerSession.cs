@@ -7,7 +7,9 @@ internal sealed class PlayerSession
     public required int Slot { get; init; }
     public required uint ControllerIndex { get; init; }
     public required ulong SteamId { get; init; }
-    public Queue<string> RecentSkills { get; } = new();
+    // One entry per round. Multi-skill rounds therefore consume one history
+    // slot rather than prematurely exhausting the anti-repeat window.
+    public Queue<HashSet<string>> RecentSkillRounds { get; } = new();
     public List<SkillAssignment> Assignments { get; } = new();
 
     public bool Matches(CCSPlayerController player)
@@ -18,6 +20,25 @@ internal sealed class PlayerSession
         }
 
         return ControllerIndex == player.Index;
+    }
+
+    public bool HasRecentSkill(string skillId) => RecentSkillRounds.Any(round => round.Contains(skillId));
+
+    public void BeginSkillRound(int limit)
+    {
+        RecentSkillRounds.Enqueue(new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        while (RecentSkillRounds.Count > Math.Max(0, limit))
+        {
+            RecentSkillRounds.Dequeue();
+        }
+    }
+
+    public void RememberSkillThisRound(string skillId)
+    {
+        if (RecentSkillRounds.TryPeek(out var currentRound))
+        {
+            currentRound.Add(skillId);
+        }
     }
 }
 

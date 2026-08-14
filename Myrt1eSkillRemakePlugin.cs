@@ -29,6 +29,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private RoundEventManager _roundEventManager = null!;
     private DamageEventRouter _damageEventRouter = null!;
     private ExplosiveProjectileService _explosions = null!;
+    private SmokeProjectileService _smokes = null!;
     private ExplodingBarrelService _barrels = null!;
     private FortniteService _fortnite = null!;
     private IllusionistService _illusionist = null!;
@@ -55,6 +56,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private HealingChickenService _healingChickens = null!;
     private SpecialHeartCompanionService _specialHeart = null!;
     private HelpingHandService _helpingHand = null!;
+    private PathTrailService _pathTrails = null!;
     private FindThemService _findThem = null!;
     private KamikazeChickenService _kamikazeChickens = null!;
     private GlazService _glaz = null!;
@@ -62,6 +64,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
     private RoundPresentationService _presentation = null!;
     private CrosshairSuppressionService _crosshairs = null!;
     private DeafSoundService _deafSounds = null!;
+    private SoundMakerService _soundMaker = null!;
     private FieldOfViewService _fieldOfView = null!;
     private TrackerTrailService _tracker = null!;
     private SilentSoundService _silentSounds = null!;
@@ -89,6 +92,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _fog = new FogService();
         _explosions = new ExplosiveProjectileService(this, Config.ExplosiveShot);
         _explosions.Load();
+        _smokes = new SmokeProjectileService(this);
         _barrels = new ExplodingBarrelService(this, Config.ExplodingBarrel, _explosions);
         _barrels.Load();
         _fortnite = new FortniteService(this, Config.Fortnite);
@@ -130,6 +134,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _specialHeart = new SpecialHeartCompanionService(this, Config.SpecialHeart);
         _specialHeart.Load();
         _helpingHand = new HelpingHandService(Config.HelpingHand);
+        _pathTrails = new PathTrailService(_navMesh);
         _findThem = new FindThemService(Config.FindThem);
         _kamikazeChickens = new KamikazeChickenService(Config.KamikazeChicken, _explosions);
         _glaz = new GlazService();
@@ -138,6 +143,8 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _crosshairs = new CrosshairSuppressionService();
         _deafSounds = new DeafSoundService(this);
         _deafSounds.Load();
+        _soundMaker = new SoundMakerService(this, Config.SoundMaker);
+        _soundMaker.Load();
         _fieldOfView = new FieldOfViewService();
         _tracker = new TrackerTrailService(this, Config.Tracker);
         _tracker.Load();
@@ -180,11 +187,14 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
             _holyHandGrenades,
             _crosshairs,
             _deafSounds,
+            _soundMaker,
             _fieldOfView,
             _tracker,
             _mindHack,
             _ninjaVisibility,
-            _navMesh);
+            _navMesh,
+            _pathTrails,
+            _smokes);
         _eventRegistry = EventRegistry.CreateDefault(Config, _wallhack, _deafSounds, _navMesh, _fog, _playerView, _chickens, _helpingHand, _explosions);
         var performance = new PerformanceMonitor(this);
         _skillManager = new SkillManager(this, _registry, performance);
@@ -193,7 +203,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _roundEventManager = new RoundEventManager(this, _eventRegistry, performance);
         _presentation = new RoundPresentationService(this, _skillManager);
         _roundCoordinator = new RoundCoordinator(this, _skillManager, _roundEventManager, _presentation);
-        _eventRouter = new SkillEventRouter(this, _skillManager, _roundEventManager, _wallhack, _nightmare, _darkness, _illiterate, _ghosts, _chickens, _glaz, _presentation, _crosshairs, _tracker, _ninjaVisibility);
+        _eventRouter = new SkillEventRouter(this, _skillManager, _roundEventManager, _wallhack, _nightmare, _darkness, _illiterate, _ghosts, _chickens, _glaz, _presentation, _crosshairs, _tracker, _ninjaVisibility, _pathTrails);
         _damageEventRouter = new DamageEventRouter(this, _skillManager, _explosions, _roundEventManager);
         _damageEventRouter.Load();
 
@@ -245,6 +255,7 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         _wasdMenus?.CloseAll();
         _navMesh?.Unload();
         _silentSounds?.Unload();
+        _soundMaker?.Unload();
         _damageEventRouter?.Unload();
         _noRecoil?.Reset();
         _bombMiner?.Unload();

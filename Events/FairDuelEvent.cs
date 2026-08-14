@@ -1,5 +1,6 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Cvars;
 using Myrt1eSkill_Remake.Core;
 
 namespace Myrt1eSkill_Remake.Events;
@@ -14,7 +15,7 @@ public sealed class FairDuelEvent : RoundEventBase, IRoundEventPreDamage, IRound
     {
         Id = "FairDuel",
         DisplayName = "公平对决",
-        Description = "回合开始后的前 15 秒，双方所有玩家都不会受到伤害。",
+        Description = "冻结时间结束后的前 15 秒，双方所有玩家都不会受到伤害。",
         DefaultWeight = 10,
         ExclusiveTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -28,22 +29,33 @@ public sealed class FairDuelEvent : RoundEventBase, IRoundEventPreDamage, IRound
 
     public override void OnApplied(in RoundEventContext context)
     {
-        _active = true;
-        _invulnerableUntil = DateTime.UtcNow.AddSeconds(InvulnerabilitySeconds);
-        context.Effects.RegisterCleanup(() =>
+        var effects = context.Effects;
+        _active = false;
+        _invulnerableUntil = DateTime.MinValue;
+        effects.RegisterCleanup(() =>
         {
             _active = false;
             _invulnerableUntil = DateTime.MinValue;
         });
-        context.Effects.AddTimer((float)InvulnerabilitySeconds, () =>
+
+        // round_start is raised when freeze time begins, not when players can move.
+        var freezeTime = ConVar.Find("mp_freezetime")?.GetPrimitiveValue<int>() ?? 0;
+        effects.AddTimer(Math.Max(0.0f, freezeTime) + 0.1f, () =>
         {
-            if (_active)
+            _active = true;
+            _invulnerableUntil = DateTime.UtcNow.AddSeconds(InvulnerabilitySeconds);
+            PrintToChatAll("[娱乐事件] 公平对决：冻结结束，双方进入 15 秒无敌时间！");
+
+            effects.AddTimer((float)InvulnerabilitySeconds, () =>
             {
-                _active = false;
-                PrintToChatAll("[娱乐事件] 公平对决：15 秒无敌时间结束！");
-            }
+                if (_active)
+                {
+                    _active = false;
+                    PrintToChatAll("[娱乐事件] 公平对决：15 秒无敌时间结束！");
+                }
+            });
         });
-        PrintToChatAll("[娱乐事件] 公平对决：双方在 15 秒内都不会受到伤害！");
+        PrintToChatAll("[娱乐事件] 公平对决：冻结结束后，双方将获得 15 秒无敌时间！");
     }
 
     public void OnBeforeDamage(

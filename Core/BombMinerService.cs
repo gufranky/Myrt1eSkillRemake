@@ -112,7 +112,7 @@ public sealed class BombMinerService
 
         var range = float.IsFinite(_settings.DetonationRange)
             ? Math.Max(1.0f, _settings.DetonationRange)
-            : 130.0f;
+            : 220.0f;
         var armingSeconds = float.IsFinite(_settings.ArmingSeconds)
             ? Math.Max(0.0f, _settings.ArmingSeconds)
             : 3.0f;

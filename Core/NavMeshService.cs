@@ -124,6 +124,48 @@ public sealed class NavMeshService
         return true;
     }
 
+    public bool TryBuildPath(CCSPlayerController player, CCSPlayerController target, out IReadOnlyList<GameVector> points)
+    {
+        points = Array.Empty<GameVector>();
+        var mesh = _mesh;
+        var start = player.PlayerPawn.Value?.AbsOrigin;
+        var end = target.PlayerPawn.Value?.AbsOrigin;
+        if (mesh is null || start is null || end is null) return false;
+        var hull = SelectPlayerHull(mesh);
+        var areas = mesh.GetHullAreas(hull);
+        if (areas is null) return false;
+        var from = FindClosestArea(areas, new NavVector(start.X, start.Y, start.Z), 512.0f);
+        var to = FindClosestArea(areas, new NavVector(end.X, end.Y, end.Z), 512.0f);
+        if (from is null || to is null) return false;
+        var byId = areas.ToDictionary(area => area.AreaId);
+        var queue = new Queue<NavMeshArea>();
+        var previous = new Dictionary<uint, uint>();
+        queue.Enqueue(from);
+        previous[from.AreaId] = from.AreaId;
+        while (queue.Count > 0)
+        {
+            var area = queue.Dequeue();
+            if (area.AreaId == to.AreaId) break;
+            foreach (var link in area.Connections.SelectMany(edge => edge))
+            {
+                if (previous.ContainsKey(link.AreaId) || !byId.ContainsKey(link.AreaId)) continue;
+                previous[link.AreaId] = area.AreaId;
+                queue.Enqueue(byId[link.AreaId]);
+            }
+        }
+        if (!previous.ContainsKey(to.AreaId)) return false;
+        var path = new List<GameVector>();
+        for (var id = to.AreaId;; id = previous[id])
+        {
+            var center = PolygonCenter(byId[id].Corners);
+            path.Add(new GameVector(center.X, center.Y, center.Z + 12.0f));
+            if (id == from.AreaId) break;
+        }
+        path.Reverse();
+        points = path;
+        return true;
+    }
+
     public bool TryFindSafeRandomPosition(
         CCSPlayerController player,
         out GameVector destination,

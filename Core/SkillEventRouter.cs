@@ -23,6 +23,7 @@ public sealed class SkillEventRouter
     private readonly CrosshairSuppressionService _crosshairs;
     private readonly TrackerTrailService _tracker;
     private readonly NinjaVisibilityService _ninjaVisibility;
+    private readonly PathTrailService _pathTrails;
 
     public SkillEventRouter(
         Myrt1eSkillRemakePlugin plugin,
@@ -38,7 +39,8 @@ public sealed class SkillEventRouter
         RoundPresentationService presentation,
         CrosshairSuppressionService crosshairs,
         TrackerTrailService tracker,
-        NinjaVisibilityService ninjaVisibility)
+        NinjaVisibilityService ninjaVisibility,
+        PathTrailService pathTrails)
     {
         _plugin = plugin;
         _skills = skills;
@@ -54,6 +56,7 @@ public sealed class SkillEventRouter
         _crosshairs = crosshairs;
         _tracker = tracker;
         _ninjaVisibility = ninjaVisibility;
+        _pathTrails = pathTrails;
     }
 
     public HookResult OnPlayerHurt(EventPlayerHurt @event, GameEventInfo info)
@@ -86,6 +89,9 @@ public sealed class SkillEventRouter
         _wallhack.RemoveTarget(@event.Userid);
         _nightmare.RemoveTarget(@event.Userid);
         _darkness.RemoveTarget(@event.Userid);
+        _events.Dispatch<IRoundEventPlayerDeath>(
+            "EventRound.PlayerDeath",
+            (handler, context) => handler.OnPlayerDeath(context, @event));
         _skills.Dispatch<IPlayerDeathSkill>(
             "Event.PlayerDeath",
             (handler, context) => handler.OnPlayerDeath(context, @event));
@@ -287,6 +293,7 @@ public sealed class SkillEventRouter
         _glaz.OnCheckTransmit(infoList);
         _nightmare.OnCheckTransmit(infoList);
         _tracker.OnCheckTransmit(infoList);
+        _pathTrails.OnCheckTransmit(infoList);
         _ninjaVisibility.OnCheckTransmit(infoList);
         _events.Dispatch<IRoundEventCheckTransmit>(
             "CheckTransmit.ActiveEvents",

@@ -203,7 +203,7 @@ public sealed class SkillManager
         if (_sessions.TryGetValue(player.Slot, out var session) && session.Matches(player))
         {
             var preferred = candidates
-                .Where(skill => !session.RecentSkills.Contains(skill.Descriptor.Id))
+                .Where(skill => !session.HasRecentSkill(skill.Descriptor.Id))
                 .ToList();
             if (preferred.Count >= Math.Min(count, candidates.Count))
             {
@@ -304,6 +304,7 @@ public sealed class SkillManager
             return false;
         }
 
+        Remember(session, skill.Descriptor.Id);
         grantedSkill = skill.Descriptor;
         return true;
     }
@@ -386,6 +387,12 @@ public sealed class SkillManager
     public void AssignAllPlayers(SkillPlan plan)
     {
         _currentPlan = plan;
+        var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
+        foreach (var player in eligiblePlayers)
+        {
+            GetOrCreateSession(player).BeginSkillRound(_plugin.Config.RepeatBlockRounds);
+        }
+
         if (!plan.Enabled)
         {
             RevokeAll();
@@ -393,7 +400,6 @@ public sealed class SkillManager
         }
 
         RevokeAll();
-        var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
         var recipients = plan.AssignmentMode == SkillAssignmentMode.OneRandomPlayerPerTeam
             ? SelectOneRandomPlayerPerTeam(eligiblePlayers)
             : eligiblePlayers;
@@ -683,6 +689,11 @@ public sealed class SkillManager
             }
         }
 
+        foreach (var skill in granted)
+        {
+            Remember(session, skill.Descriptor.Id);
+        }
+
         if (granted.Count < requestedCount)
         {
             _plugin.Logger.LogWarning(
@@ -708,7 +719,6 @@ public sealed class SkillManager
         {
             skill.OnGranted(CreateContext(player, assignment));
             session.Assignments.Add(assignment);
-            Remember(session, skill.Descriptor.Id);
             return true;
         }
         catch (Exception exception)
@@ -747,7 +757,7 @@ public sealed class SkillManager
             .ToArray();
 
         var preferred = compatible
-            .Where(skill => !session.RecentSkills.Contains(skill.Descriptor.Id))
+            .Where(skill => !session.HasRecentSkill(skill.Descriptor.Id))
             .ToArray();
 
         // A small enabled pool must not deadlock merely because all skills are recent.
@@ -928,12 +938,7 @@ public sealed class SkillManager
 
     private void Remember(PlayerSession session, string skillId)
     {
-        session.RecentSkills.Enqueue(skillId);
-        var limit = Math.Max(0, _plugin.Config.RepeatBlockRounds);
-        while (session.RecentSkills.Count > limit)
-        {
-            session.RecentSkills.Dequeue();
-        }
+        session.RememberSkillThisRound(skillId);
     }
 
     private bool IsEnabled(ISkill skill)

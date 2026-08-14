@@ -69,6 +69,10 @@ public sealed class EventRegistry
         registry.Register(new FragileEveryoneEvent());
         registry.Register(new HelpingHandEvent(helpingHand));
         registry.Register(new BombardmentZoneEvent(config.BombardmentZone, explosions, navMesh));
+        registry.Register(new WeaponRouletteEvent(config.WeaponRoulette));
+        registry.Register(new KingModeEvent(config.KingMode, wallhack));
+        registry.Register(new StandingStillBombsEvent(config.StandingStillBombs, explosions));
+        registry.Register(new GiantEvent(config.Giant));
         registry.Register(new ManyChickensEvent(config.ManyChickensEvent, config.Chicken, navMesh, chickens));
         return registry;
     }

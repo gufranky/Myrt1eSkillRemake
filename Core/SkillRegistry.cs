@@ -45,11 +45,14 @@ public sealed class SkillRegistry
         HolyHandGrenadeService holyHandGrenades,
         CrosshairSuppressionService crosshairs,
         DeafSoundService deafSounds,
+        SoundMakerService soundMaker,
         FieldOfViewService fieldOfView,
         TrackerTrailService tracker,
         MindHackService mindHack,
         NinjaVisibilityService ninjaVisibility,
-        NavMeshService navMesh)
+        NavMeshService navMesh,
+        PathTrailService pathTrails,
+        SmokeProjectileService smokes)
     {
         var registry = new SkillRegistry();
         var antiFlash = new AntiFlashSkill(config.AntiFlash);
@@ -102,13 +105,15 @@ public sealed class SkillRegistry
         registry.Register(new HealingSmokeSkill(config.HealingSmoke));
         registry.Register(new PyroSkill(config.Pyro));
         registry.Register(new RichBoySkill(config.RichBoy));
+        registry.Register(new BountyHunterSkill(config.BountyHunter, wallhack));
         registry.Register(new ThornsSkill(config.Thorns));
         registry.Register(new GrenadierSkill());
         registry.Register(new NinjaSkill(config.Ninja, ninjaVisibility));
+        registry.Register(new NinjaEscapeSkill(config.NinjaEscape, navMesh, smokes));
         registry.Register(new PilotSkill(config.Pilot));
         registry.Register(new MeitoSkill());
         registry.Register(new BombMinerSkill(config.BombMiner, bombMiner));
-        registry.Register(new SoundMakerSkill(config.SoundMaker));
+        registry.Register(new SoundMakerSkill(soundMaker));
         registry.Register(new SilentSkill());
         registry.Register(new ThirdEyeSkill(thirdEye));
         registry.Register(new FalconEyeSkill(falconEye));
@@ -125,6 +130,7 @@ public sealed class SkillRegistry
         registry.Register(new ChickenSkill(chickens));
         registry.Register(new SpecialHeartSkill(config.SpecialHeart, specialHeart));
         registry.Register(new HelpingHandSkill(helpingHand));
+        registry.Register(new PathTrackerSkill(pathTrails));
         registry.Register(new HealingChickenSkill(healingChickens));
         registry.Register(new FindThemSkill(config.FindThem, findThem));
         registry.Register(new KamikazeChickenSkill(config.KamikazeChicken, kamikazeChickens));

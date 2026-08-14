@@ -31,7 +31,12 @@ public sealed class WasdMenu
 public sealed class WasdMenuService
 {
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromMilliseconds(250);
-    private const int VisibleOptions = 3;
+    // Center HTML is much shorter than a normal panel. Long skill descriptions
+    // wrap, so three logical options could occupy six or more visual lines and
+    // clip the footer off-screen. Keep every page deliberately compact.
+    private const int VisibleOptions = 2;
+    private const int MaximumTitleCharacters = 24;
+    private const int MaximumOptionCharacters = 32;
 
     private sealed class ActiveMenu
     {
@@ -154,19 +159,33 @@ public sealed class WasdMenuService
         var count = active.Menu.Options.Count;
         var start = Math.Clamp(active.SelectedIndex - 1, 0, Math.Max(0, count - VisibleOptions));
         var end = Math.Min(count, start + VisibleOptions);
-        var html = $"<font class='fontWeight-Bold fontSize-l' color='#FFD166'>★ {Encode(active.Menu.Title)} ★</font><br>";
+        var title = ClampDisplayText(active.Menu.Title, MaximumTitleCharacters);
+        var html = $"<font class='fontWeight-Bold fontSize-m' color='#FFD166'>★ {Encode(title)} ({active.SelectedIndex + 1}/{count}) ★</font><br>";
 
         for (var index = start; index < end; index++)
         {
-            var text = Encode(active.Menu.Options[index].Text);
+            var text = Encode(ClampDisplayText(active.Menu.Options[index].Text, MaximumOptionCharacters));
             html += index == active.SelectedIndex
-                ? $"<font class='fontSize-m' color='#B388FF'>[ </font><font class='fontSize-m' color='#A3FF8F'>{text}</font><font class='fontSize-m' color='#B388FF'> ]</font><br>"
-                : $"<font class='fontSize-m' color='#E8E8E8'>{text}</font><br>";
+                ? $"<font class='fontSize-s' color='#B388FF'>[ </font><font class='fontSize-s' color='#A3FF8F'>{text}</font><font class='fontSize-s' color='#B388FF'> ]</font><br>"
+                : $"<font class='fontSize-s' color='#E8E8E8'>{text}</font><br>";
         }
 
         return html
                + "<br><font class='fontSize-s' color='#9AA4B2'>W/S 选择</font>"
                + "　<font class='fontSize-s' color='#A3FF8F'>E 确认</font>";
+    }
+
+    public static string ClampDisplayText(string? value, int maximumCharacters)
+    {
+        if (string.IsNullOrWhiteSpace(value) || maximumCharacters <= 0)
+        {
+            return string.Empty;
+        }
+
+        var compact = value.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return compact.Length <= maximumCharacters
+            ? compact
+            : string.Concat(compact.AsSpan(0, Math.Max(1, maximumCharacters - 1)), "…");
     }
 
     private static string Encode(string value) => WebUtility.HtmlEncode(value);

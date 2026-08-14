@@ -16,7 +16,8 @@ public sealed class RoundEventManager
     private readonly EventRegistry _registry;
     private readonly PerformanceMonitor _performance;
     private readonly List<EventAssignment> _active = new();
-    private readonly Queue<string> _rootHistory = new();
+    // Each item represents one complete round, including nested events.
+    private readonly Queue<HashSet<string>> _eventHistory = new();
     private string? _forcedNextEventId;
 
     public RoundPlan? CurrentPlan { get; private set; }
@@ -191,7 +192,7 @@ public sealed class RoundEventManager
             var rootCandidates = _registry.All
             .Where(IsEnabled)
             .Where(@event => GetWeight(@event) > 0)
-            .Where(@event => !_rootHistory.Contains(@event.Descriptor.Id))
+            .Where(@event => !WasUsedRecently(@event.Descriptor.Id))
             .ToArray();
 
             if (rootCandidates.Length == 0)
@@ -205,8 +206,6 @@ public sealed class RoundEventManager
             root = WeightedSelector.Select(rootCandidates, GetWeight) ?? GetNormalEvent();
         }
 
-        RememberRoot(root.Descriptor.Id);
-
         var selected = new List<IRoundEvent> { root };
         var childCount = Math.Max(0, root.Descriptor.CompositeChildCount);
         var maxEvents = Math.Clamp(_plugin.Config.MaxEventsPerRound, 1, 8);
@@ -219,8 +218,22 @@ public sealed class RoundEventManager
                 .Where(@event => @event.Descriptor.CanBeNested)
                 .Where(@event => @event.Descriptor.CompositeChildCount == 0)
                 .Where(@event => GetWeight(@event) > 0)
+                .Where(@event => !WasUsedRecently(@event.Descriptor.Id))
                 .Where(@event => CompatibilityResolver.CanCombine(selected, @event))
                 .ToArray();
+
+            // Do not block a composite event when every compatible child is
+            // in the history window; the root event must still be playable.
+            if (candidates.Length == 0)
+            {
+                candidates = _registry.All
+                    .Where(IsEnabled)
+                    .Where(@event => @event.Descriptor.CanBeNested)
+                    .Where(@event => @event.Descriptor.CompositeChildCount == 0)
+                    .Where(@event => GetWeight(@event) > 0)
+                    .Where(@event => CompatibilityResolver.CanCombine(selected, @event))
+                    .ToArray();
+            }
 
             var child = WeightedSelector.Select(candidates, GetWeight);
             if (child is null)
@@ -236,6 +249,7 @@ public sealed class RoundEventManager
             selected.Add(child);
         }
 
+        RememberEvents(selected);
         return BuildPlan(selected);
     }
 
@@ -293,13 +307,18 @@ public sealed class RoundEventManager
         return settings is not null;
     }
 
-    private void RememberRoot(string eventId)
+    private bool WasUsedRecently(string eventId) =>
+        _eventHistory.Any(round => round.Contains(eventId));
+
+    private void RememberEvents(IEnumerable<IRoundEvent> events)
     {
-        _rootHistory.Enqueue(eventId);
+        _eventHistory.Enqueue(events
+            .Select(@event => @event.Descriptor.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase));
         var limit = Math.Max(0, _plugin.Config.EventRepeatBlockRounds);
-        while (_rootHistory.Count > limit)
+        while (_eventHistory.Count > limit)
         {
-            _rootHistory.Dequeue();
+            _eventHistory.Dequeue();
         }
     }
 }

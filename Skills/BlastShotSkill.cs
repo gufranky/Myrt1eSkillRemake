@@ -6,7 +6,7 @@ using Myrt1eSkill_Remake.Core;
 
 namespace Myrt1eSkill_Remake.Skills;
 
-public sealed class BlastShotSkill : ISkill, IPlayerButtonsChangedSkill, ITickSkill
+public sealed class BlastShotSkill : ISkill, ITickSkill
 {
     public const string RequiredWeapon = "weapon_mp5sd";
 
@@ -69,19 +69,14 @@ public sealed class BlastShotSkill : ISkill, IPlayerButtonsChangedSkill, ITickSk
     {
     }
 
-    public void OnPlayerButtonsChanged(
-        in SkillContext context,
-        PlayerButtons pressed,
-        PlayerButtons released)
+    private void TryFire(in SkillContext context, BlastShotState state)
     {
-        if (!pressed.HasFlag(PlayerButtons.Attack2)
-            || !context.State.TryGet<BlastShotState>(out var state)
-            || !state.Active)
+        var player = context.Player;
+        if (!player.Buttons.HasFlag(PlayerButtons.Attack2))
         {
             return;
         }
 
-        var player = context.Player;
         var pawn = player.PlayerPawn.Value;
         if (pawn is not { IsValid: true } || pawn.AbsOrigin is null)
         {
@@ -92,7 +87,6 @@ public sealed class BlastShotSkill : ISkill, IPlayerButtonsChangedSkill, ITickSk
         if (activeWeapon is not { IsValid: true }
             || !activeWeapon.DesignerName.Equals(RequiredWeapon, StringComparison.OrdinalIgnoreCase))
         {
-            PluginText.Center(player, "爆破射击需要手持 MP5-SD");
             return;
         }
 
@@ -139,6 +133,10 @@ public sealed class BlastShotSkill : ISkill, IPlayerButtonsChangedSkill, ITickSk
         {
             return;
         }
+
+        // CS2 does not reliably report Attack2 through OnPlayerButtonsChanged.
+        // Match jRandomSkills by polling the authoritative button state instead.
+        TryFire(context, state);
 
         var remaining = (state.CooldownEndsAt - DateTime.UtcNow).TotalSeconds;
         if (remaining <= 0.0)

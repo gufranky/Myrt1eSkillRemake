@@ -32,6 +32,9 @@ var checks = new List<(string Name, Action Run)>
     ("Jump event variants cannot be combined", CheckJumpEventConflict),
     ("Spread-changing events cannot be combined", CheckSpreadEventConflict),
     ("Inaccurate forces global spread and blocks spread skills", CheckInaccurateDescriptor),
+    ("WeaponRoulette replaces only primary weapons on a fixed interval", CheckWeaponRouletteDescriptor),
+    ("KingMode eliminates a team when its revealed king dies", CheckKingModeDescriptor),
+    ("StandingStillBombs uses delayed native HE warnings", CheckStandingStillBombsDescriptor),
     ("SilentWorld suppresses all sound recipients and blocks redundant skills", CheckSilentWorldDescriptor),
     ("AnywhereBombPlant forces bomb-zone state and a sixty-second timer", CheckAnywhereBombPlantDescriptor),
     ("KillerSatellite replaces all assignments with KillerFlash and Meito", CheckKillerSatellitePlan),
@@ -90,15 +93,17 @@ var checks = new List<(string Name, Action Run)>
     ("HealingSmoke colors, tracks, replenishes, and heals", CheckHealingSmokeRouting),
     ("Pyro converts inferno damage into health and carries two fire grenades", CheckPyroRouting),
     ("RichBoy grants a bounded persistent round bonus", CheckRichBoyDescriptor),
+    ("BountyHunter marks one enemy and rewards its killer", CheckBountyHunterDescriptor),
     ("Thorns reflects bounded health damage without recursive scaling", CheckThornsDescriptor),
     ("Grenadier replenishes only high-explosive grenades", CheckGrenadierDescriptor),
     ("Grenade replenishment tolerates event names and stale inventory handles", CheckGrenadeReplenishment),
     ("Ninja stacks three visibility conditions to full concealment", CheckNinjaDescriptor),
+    ("NinjaEscape nullifies one lethal hit and uses native smoke", CheckNinjaEscapeDescriptor),
     ("Pilot consumes tick callbacks", CheckPilotRouting),
     ("Meito consumes victim pre-damage callbacks", CheckMeitoRouting),
     ("BombMiner consumes grenade-thrown callbacks", CheckBombMinerRouting),
     ("HotBomb burns the living enemy C4 carrier", CheckHotBombDescriptor),
-    ("SoundMaker emits enemy screams on tick", CheckSoundMakerRouting),
+    ("SoundMaker routes enemy screams through the sound-message service", CheckSoundMakerRouting),
     ("Silent filters reference footsteps and jump sounds", CheckSilentDescriptor),
     ("ThirdEye toggles a zero-cooldown camera", CheckThirdEyeDescriptor),
     ("FalconEye toggles a weapon-blocking overhead camera", CheckFalconEyeDescriptor),
@@ -714,6 +719,9 @@ static void CheckWasdMenuNavigation()
         "S must move to the next option.");
     Assert(WasdMenuService.MoveSelection(2, 0, 1) == 0,
         "An empty menu must keep a safe zero selection.");
+    Assert(WasdMenuService.ClampDisplayText("一二三四五", 4) == "一二三…"
+           && WasdMenuService.ClampDisplayText("line1\nline2", 20) == "line1 line2",
+        "WASD menus must clamp long labels to avoid center-HUD wrapping and clipping.");
 }
 
 static void CheckDeactivatorDescriptor()
@@ -822,6 +830,42 @@ static void CheckDeadlyGrenadesDescriptor()
     Assert(deadlyGrenades.Descriptor.BlockedSkillTags.Contains("weapon-ammo-control")
            && deadlyGrenades.Descriptor.BlockedSkillTags.Contains("hegrenade-behavior-control"),
         "DeadlyGrenades must suppress redundant ammo and HE behavior skills.");
+}
+
+static void CheckWeaponRouletteDescriptor()
+{
+    var settings = new WeaponRouletteEventSettings();
+    var roulette = new WeaponRouletteEvent(settings);
+    Assert(roulette.Descriptor.ExclusiveTags.Contains("weapon-loadout-rules"),
+        "WeaponRoulette must not combine with forced loadout events.");
+    Assert(settings.IntervalSeconds == 20.0f
+           && settings.PrimaryWeapons.Contains("weapon_ak47")
+           && settings.PrimaryWeapons.Contains("weapon_awp"),
+        "WeaponRoulette must retain a configurable primary-weapon pool and twenty-second cadence.");
+}
+
+static void CheckKingModeDescriptor()
+{
+    var settings = new KingModeEventSettings();
+    var kingMode = new KingModeEvent(settings, null!);
+    Assert(kingMode is IRoundEventPlayerDeath
+           && kingMode.Descriptor.ExclusiveTags.Contains("team-elimination-rules")
+           && kingMode.Descriptor.ExclusiveTags.Contains("xray-vision-rules"),
+        "KingMode must react to king death and own team-elimination plus king-vision rules.");
+    Assert(settings.KingHealth == 500,
+        "KingMode must give kings 500 health by default.");
+}
+
+static void CheckStandingStillBombsDescriptor()
+{
+    var settings = new StandingStillBombsEventSettings();
+    var standingStillBombs = new StandingStillBombsEvent(settings, null!);
+    Assert(standingStillBombs.Descriptor.ExclusiveTags.Contains("explosion-rules"),
+        "StandingStillBombs must own the global explosion rule slot.");
+    Assert(settings.IntervalSeconds == 5.0f
+           && settings.FuseSeconds == 2.0f
+           && settings.Damage == 100.0f,
+        "StandingStillBombs must preserve its five-second warning and two-second fuse defaults.");
 }
 
 static void CheckBirdshotKingDescriptor()
@@ -1221,6 +1265,21 @@ static void CheckRichBoyDescriptor()
         "RichBoy must preserve the requested reference bonus range.");
 }
 
+static void CheckBountyHunterDescriptor()
+{
+    var settings = new BountyHunterSettings();
+    var bountyHunter = new BountyHunterSkill(settings, null!);
+    Assert(bountyHunter is IPlayerDeathSkill
+           && bountyHunter.Descriptor.Kind == SkillKind.Passive
+           && bountyHunter.Descriptor.Rarity == SkillRarity.Rare
+           && bountyHunter.Descriptor.MaxPerServer == 2,
+        "BountyHunter must be a limited rare passive that reacts to player death.");
+    Assert(settings.HealthReward == 50
+           && settings.MaximumHealthAfterReward == 150
+           && settings.MoneyReward == 5000,
+        "BountyHunter must preserve the default health and money bounty rewards.");
+}
+
 static void CheckThornsDescriptor()
 {
     var settings = new ThornsSettings();
@@ -1311,6 +1370,19 @@ static void CheckNinjaDescriptor()
         "Ninja must conflict with other visibility and render owners.");
 }
 
+static void CheckNinjaEscapeDescriptor()
+{
+    var settings = new NinjaEscapeSettings();
+    var ninjaEscape = new NinjaEscapeSkill(settings, null!, null!);
+    Assert(ninjaEscape is IPreDamageSkill
+           && ninjaEscape.Descriptor.Kind == SkillKind.Passive
+           && ninjaEscape.Descriptor.Rarity == SkillRarity.Epic
+           && ninjaEscape.Descriptor.ConflictTags.Contains("second-chance"),
+        "NinjaEscape must be an epic lethal-hit escape that excludes other second-chance skills.");
+    Assert(settings.MaximumUsesPerRound == 1,
+        "NinjaEscape must only escape a lethal hit once per round by default.");
+}
+
 static void CheckPilotRouting()
 {
     var pilot = new PilotSkill(new PilotSettings());
@@ -1336,6 +1408,8 @@ static void CheckBombMinerRouting()
         "BombMiner must track its configured HE grenade charges.");
     Assert(miner.Descriptor.ConflictTags.Contains("hegrenade-behavior-control"),
         "BombMiner must declare ownership of HE grenade behavior.");
+    Assert(new BombMinerSettings().DetonationRange == 220.0f,
+        "BombMiner must use the increased 220-unit enemy detection radius.");
 }
 
 static void CheckHotBombDescriptor()
@@ -1360,9 +1434,9 @@ static void CheckHotBombDescriptor()
 
 static void CheckSoundMakerRouting()
 {
-    var soundMaker = new SoundMakerSkill(new SoundMakerSettings());
-    Assert(soundMaker is ITickSkill,
-        "SoundMaker must schedule screams through the tick pipeline.");
+    var soundMaker = new SoundMakerSkill(null!);
+    Assert(soundMaker is ISkill,
+        "SoundMaker must acquire its sound-message routing service as a passive skill.");
     Assert(soundMaker.Descriptor.Kind == SkillKind.Passive,
         "SoundMaker must be a passive skill.");
     Assert(soundMaker.Descriptor.Rarity == SkillRarity.Common,
@@ -1853,8 +1927,8 @@ static void CheckBlastShotDescriptor()
 {
     var settings = new BlastShotSettings();
     var blastShot = new BlastShotSkill(settings, null!);
-    Assert(blastShot is IPlayerButtonsChangedSkill && blastShot is ITickSkill,
-        "BlastShot must consume Attack2 input and maintain its cooldown HUD.");
+    Assert(blastShot is ITickSkill && (object)blastShot is not IPlayerButtonsChangedSkill,
+        "BlastShot must poll the authoritative Attack2 state and maintain its cooldown HUD.");
     Assert(blastShot.Descriptor.CooldownSeconds == 10.0f,
         "BlastShot must expose the requested ten-second cooldown.");
     Assert(BlastShotSkill.RequiredWeapon == "weapon_mp5sd",
@@ -2042,6 +2116,8 @@ static void CheckPresentationDefaults()
     Assert(config.SkillDescriptionDuration == 7, "Descriptions must remain for seven seconds.");
     Assert(config.YourSkillChatInfo && config.TeamMateSkillChatInfo,
         "Own and teammate skill chat announcements must be enabled by default.");
+    Assert(config.RepeatBlockRounds == 7 && config.EventRepeatBlockRounds == 7,
+        "Skills and events must both use a seven-round anti-repeat window by default.");
 }
 
 

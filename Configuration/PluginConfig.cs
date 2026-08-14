@@ -486,6 +486,18 @@ public sealed class RichBoySettings
     public int MaximumMoney { get; set; } = 15000;
 }
 
+public sealed class BountyHunterSettings
+{
+    [JsonPropertyName("HealthReward")]
+    public int HealthReward { get; set; } = 50;
+
+    [JsonPropertyName("MaximumHealthAfterReward")]
+    public int MaximumHealthAfterReward { get; set; } = 150;
+
+    [JsonPropertyName("MoneyReward")]
+    public int MoneyReward { get; set; } = 5000;
+}
+
 public sealed class ThornsSettings
 {
     [JsonPropertyName("DamageScale")]
@@ -531,7 +543,7 @@ public sealed class PilotSettings
 public sealed class BombMinerSettings
 {
     [JsonPropertyName("DetonationRange")]
-    public float DetonationRange { get; set; } = 130.0f;
+    public float DetonationRange { get; set; } = 220.0f;
 
     [JsonPropertyName("ArmingSeconds")]
     public float ArmingSeconds { get; set; } = 3.0f;
@@ -1011,7 +1023,7 @@ public sealed class PluginConfig : BasePluginConfig
     public bool TeamMateSkillChatInfo { get; set; } = true;
 
     [JsonPropertyName("RepeatBlockRounds")]
-    public int RepeatBlockRounds { get; set; } = 4;
+    public int RepeatBlockRounds { get; set; } = 7;
 
     [JsonPropertyName("ActivateWithUseKey")]
     public bool ActivateWithUseKey { get; set; } = true;
@@ -1330,6 +1342,13 @@ public sealed class PluginConfig : BasePluginConfig
             Rarity = "Common",
             MaxPerServer = -1
         },
+        ["BountyHunter"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Rare",
+            MaxPerServer = 2
+        },
         ["Thorns"] = new()
         {
             Enabled = true,
@@ -1350,6 +1369,13 @@ public sealed class PluginConfig : BasePluginConfig
             Weight = 10,
             Rarity = "Common",
             MaxPerServer = -1
+        },
+        ["NinjaEscape"] = new()
+        {
+            Enabled = true,
+            Weight = 10,
+            Rarity = "Epic",
+            MaxPerServer = 3
         },
         ["Pilot"] = new()
         {
@@ -1764,11 +1790,17 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("RichBoy")]
     public RichBoySettings RichBoy { get; set; } = new();
 
+    [JsonPropertyName("BountyHunter")]
+    public BountyHunterSettings BountyHunter { get; set; } = new();
+
     [JsonPropertyName("Thorns")]
     public ThornsSettings Thorns { get; set; } = new();
 
     [JsonPropertyName("Ninja")]
     public NinjaSettings Ninja { get; set; } = new();
+
+    [JsonPropertyName("NinjaEscape")]
+    public NinjaEscapeSettings NinjaEscape { get; set; } = new();
 
     [JsonPropertyName("Pilot")]
     public PilotSettings Pilot { get; set; } = new();
@@ -1827,8 +1859,20 @@ public sealed class PluginConfig : BasePluginConfig
     [JsonPropertyName("HelpingHand")]
     public HelpingHandSettings HelpingHand { get; set; } = new();
 
+    [JsonPropertyName("Giant")]
+    public GiantEventSettings Giant { get; set; } = new();
+
     [JsonPropertyName("BombardmentZone")]
     public BombardmentZoneSettings BombardmentZone { get; set; } = new();
+
+    [JsonPropertyName("WeaponRoulette")]
+    public WeaponRouletteEventSettings WeaponRoulette { get; set; } = new();
+
+    [JsonPropertyName("KingMode")]
+    public KingModeEventSettings KingMode { get; set; } = new();
+
+    [JsonPropertyName("StandingStillBombs")]
+    public StandingStillBombsEventSettings StandingStillBombs { get; set; } = new();
 
     [JsonPropertyName("HealingChicken")]
     public HealingChickenSettings HealingChicken { get; set; } = new();
@@ -1954,7 +1998,7 @@ public sealed class PluginConfig : BasePluginConfig
     public int MaxEventsPerRound { get; set; } = 4;
 
     [JsonPropertyName("EventRepeatBlockRounds")]
-    public int EventRepeatBlockRounds { get; set; } = 4;
+    public int EventRepeatBlockRounds { get; set; } = 7;
 
     [JsonPropertyName("ChooseCarnivalSkillId")]
     public string ChooseCarnivalSkillId { get; set; } = "ChooseOneOfThree";
@@ -2011,7 +2055,11 @@ public sealed class PluginConfig : BasePluginConfig
         ["FairDuel"] = new() { Enabled = true, Weight = 10 },
         ["FragileEveryone"] = new() { Enabled = true, Weight = 10 },
         ["HelpingHand"] = new() { Enabled = true, Weight = 10 },
+        ["Giant"] = new() { Enabled = true, Weight = 10 },
         ["BombardmentZone"] = new() { Enabled = true, Weight = 10 },
+        ["WeaponRoulette"] = new() { Enabled = true, Weight = 10 },
+        ["KingMode"] = new() { Enabled = true, Weight = 10 },
+        ["StandingStillBombs"] = new() { Enabled = true, Weight = 10 },
         ["ManyChickens"] = new() { Enabled = true, Weight = 10 }
     };
 

@@ -19,7 +19,7 @@ public sealed class ExplosiveProjectileService
         float Damage,
         float Radius,
         float TeammateDamageMultiplier,
-        bool DetonateImmediately);
+        float DetonateTime);
     private sealed record KillCredit(uint AttackerIndex, int ExpiryTick);
 
     private const string GlobalNamePrefix = "myrt1eskill_explosiveshot_";
@@ -79,6 +79,54 @@ public sealed class ExplosiveProjectileService
         return TrySpawn(position, owner.Index, owner.TeamNum, damage, radius, teammateMultiplier);
     }
 
+    /// <summary>
+    /// Creates a stationary native HE projectile that remains visible until its
+    /// fuse expires. The underlying CS2 detonation field uses server time.
+    /// </summary>
+    public bool TrySpawnDelayed(
+        Vector position,
+        CCSPlayerController owner,
+        float damage,
+        float radius,
+        float delaySeconds)
+    {
+        if (!TryResolveFactory())
+        {
+            return false;
+        }
+
+        var teammateMultiplier = float.IsFinite(_settings.TeammateDamageReduction)
+            ? 1.0f - Math.Clamp(_settings.TeammateDamageReduction, 0.0f, 1.0f)
+            : 0.50f;
+        var request = new SpawnRequest(
+            owner.Index,
+            owner.TeamNum,
+            float.IsFinite(damage) ? Math.Max(0.0f, damage) : 0.0f,
+            float.IsFinite(radius) ? Math.Max(0.0f, radius) : 0.0f,
+            teammateMultiplier,
+            Server.CurrentTime + Math.Max(0.0f, delaySeconds));
+        _pendingSpawns.Enqueue(request);
+
+        try
+        {
+            _createHe!.Invoke(
+                position.Handle,
+                MarkerAngle.Handle,
+                ZeroVelocity.Handle,
+                ZeroVelocity.Handle,
+                nint.Zero,
+                44,
+                owner.TeamNum);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            _pendingSpawns.TryDequeue(out _);
+            _plugin.Logger.LogError(exception, "Failed to create a delayed HE projectile");
+            return false;
+        }
+    }
+
     public bool TrySpawn(
         Vector position,
         uint ownerIndex,
@@ -100,7 +148,7 @@ public sealed class ExplosiveProjectileService
             float.IsFinite(teammateDamageMultiplier)
                 ? Math.Clamp(teammateDamageMultiplier, 0.0f, 1.0f)
                 : 0.50f,
-            DetonateImmediately: true);
+            DetonateTime: 0.0f);
         _pendingSpawns.Enqueue(request);
 
         try
@@ -145,7 +193,7 @@ public sealed class ExplosiveProjectileService
             float.IsFinite(teammateDamageMultiplier)
                 ? Math.Clamp(teammateDamageMultiplier, 0.0f, 1.0f)
                 : 0.50f,
-            DetonateImmediately: false);
+            DetonateTime: -1.0f);
         _pendingBlastShots.Enqueue(request);
 
         try
@@ -288,9 +336,9 @@ public sealed class ExplosiveProjectileService
         projectile.TeamNum = source.Team;
         projectile.Damage = source.Damage;
         projectile.DmgRadius = source.Radius;
-        if (source.DetonateImmediately)
+        if (source.DetonateTime >= 0.0f)
         {
-            projectile.DetonateTime = 0.0f;
+            projectile.DetonateTime = source.DetonateTime;
         }
         projectile.Globalname = $"{GlobalNamePrefix}{source.Team}_{source.OwnerIndex}_{source.TeammateDamageMultiplier.ToString("R", CultureInfo.InvariantCulture)}_{projectile.Index}";
     }
