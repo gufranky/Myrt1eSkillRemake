@@ -18,7 +18,7 @@
 - `EntertainmentEvent`：全局回合事件，生命周期是 `Register -> OnApply -> OnRevert`。
 - `PlayerSkill`：玩家技能，生命周期是 `Register -> OnApply -> OnUse -> OnRevert`。
 
-两套 Manager 都使用整数权重抽取，并用长度为 8 的历史队列减少重复。回合执行顺序是：恢复旧事件和技能状态、抽全局事件、延迟后给玩家抽技能、回合结束清理。
+两套 Manager 都使用整数权重抽取，并用长度为 10 的历史队列减少重复。回合执行顺序是：恢复旧事件和技能状态、抽全局事件、延迟后给玩家抽技能、回合结束清理。
 
 ## 2. 参考架构的优点
 

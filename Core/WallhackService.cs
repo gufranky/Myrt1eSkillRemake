@@ -318,15 +318,21 @@ public sealed class WallhackService : IDisposable
         {
             ClearNetworkedFlag(relay);
             relay.SetModel(modelName);
-            relay.Spawnflags = 256u;
+            // Keep the bonemerged model out of all collision traces.  The
+            // explicit non-solid flag and DisableCollision input are both
+            // intentional: otherwise a close RangeFinder reveal can make
+            // the client camera resolve against the hidden prop and snap.
+            relay.Spawnflags = 256u | 8192u;
             relay.RenderMode = RenderMode_t.kRenderNone;
             relay.DispatchSpawn();
+            relay.AcceptInput("DisableCollision", relay, relay);
 
             ClearNetworkedFlag(glow);
             glow.SetModel(modelName);
-            glow.Spawnflags = 256u;
+            glow.Spawnflags = 256u | 8192u;
             glow.Render = Color.FromArgb(1, 255, 255, 255);
             glow.DispatchSpawn();
+            glow.AcceptInput("DisableCollision", glow, glow);
             glow.Glow.GlowColorOverride = target.Team == CsTeam.Terrorist
                 ? Color.FromArgb(255, 255, 165, 0)
                 : Color.FromArgb(255, 173, 216, 230);
@@ -335,8 +341,13 @@ public sealed class WallhackService : IDisposable
             glow.Glow.GlowType = 3;
             glow.Glow.GlowRangeMin = 100;
 
-            relay.AcceptInput("FollowEntity", pawn, relay, "!activator");
-            glow.AcceptInput("FollowEntity", relay, glow, "!activator");
+            // FollowEntity performs a bone-merge and repeatedly enters the
+            // model setup path.  On the current CS2 build that path can hit
+            // skeletoninstance.cpp:5337 while the clone is staged and take
+            // the whole server down.  The outline only needs origin/rotation
+            // tracking, so use a regular parent hierarchy instead.
+            relay.AcceptInput("SetParent", pawn, relay, "!activator");
+            glow.AcceptInput("SetParent", relay, glow, "!activator");
             _glows[target.Index] = new GlowPair(relay.Index, glow.Index, target.Team);
         }
         catch (Exception exception)

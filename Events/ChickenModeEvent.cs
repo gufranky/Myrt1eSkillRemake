@@ -254,7 +254,10 @@ public sealed class ChickenModeEvent : RoundEventBase,
             return;
         }
 
-        var entities = new HashSet<uint> { pawn.Index };
+        // Do not filter the Pawn itself: the chicken prop is parented to it,
+        // so clients must continue receiving the parent transform. The Pawn
+        // is already fully transparent; only weapons need hiding.
+        var entities = new HashSet<uint>();
         if (pawn.WeaponServices is not null)
         {
             foreach (var weapon in pawn.WeaponServices.MyWeapons)

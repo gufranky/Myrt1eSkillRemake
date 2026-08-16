@@ -10,11 +10,18 @@ internal sealed class PlayerSession
     // One entry per round. Multi-skill rounds therefore consume one history
     // slot rather than prematurely exhausting the anti-repeat window.
     public Queue<HashSet<string>> RecentSkillRounds { get; } = new();
+    // Each player receives a private, weighted 50-skill sequence. It survives
+    // round changes and is rebuilt only after every entry has been consumed.
+    public NonRepeatingSequence<ISkill> SkillSequence { get; } = new();
     public List<SkillAssignment> Assignments { get; } = new();
 
     public bool Matches(CCSPlayerController player)
     {
-        if (SteamId != 0 || player.SteamID != 0)
+        // Steam authentication can briefly report zero during connect/team
+        // transitions. If either side is unauthenticated, keep the session
+        // bound to the controller slot instead of discarding its cooldown
+        // history and allowing an immediate repeat.
+        if (SteamId != 0 && player.SteamID != 0)
         {
             return SteamId == player.SteamID;
         }

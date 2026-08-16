@@ -201,9 +201,11 @@ public sealed class FindHimEvent : RoundEventBase, IRoundEventTick, IRoundEventP
         }
 
         relay.SetModel(ChickenModel);
+        relay.Spawnflags = 256u | 8192u;
         relay.RenderMode = RenderMode_t.kRenderNone;
         relay.DispatchSpawn();
         glow.SetModel(ChickenModel);
+        glow.Spawnflags = 256u | 8192u;
         glow.Render = Color.FromArgb(1, 255, 40, 40);
         glow.Glow.GlowColorOverride = Color.FromArgb(255, 255, 40, 40);
         glow.Glow.GlowRange = 5000;
@@ -211,8 +213,14 @@ public sealed class FindHimEvent : RoundEventBase, IRoundEventTick, IRoundEventP
         glow.Glow.GlowType = 3;
         glow.Glow.GlowTeam = -1;
         glow.DispatchSpawn();
-        relay.AcceptInput("FollowEntity", _chicken, relay, "!activator");
-        glow.AcceptInput("FollowEntity", relay, glow, "!activator");
+        // Avoid bone-merge FollowEntity here.  The server log showed repeated
+        // SetupModel assertions followed by a native SIGSEGV; a plain parent
+        // hierarchy is sufficient for the chicken marker and does not enter
+        // the fragile skeleton merge path.
+        relay.AcceptInput("DisableCollision", relay, relay);
+        glow.AcceptInput("DisableCollision", glow, glow);
+        relay.AcceptInput("SetParent", _chicken, relay, "!activator");
+        glow.AcceptInput("SetParent", relay, glow, "!activator");
         _glowRelay = relay;
         _glow = glow;
         effects.TrackEntity(relay);

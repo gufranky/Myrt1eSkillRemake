@@ -5,6 +5,8 @@ namespace Myrt1eSkill_Remake.Core;
 
 public sealed class RoundEventManager
 {
+    private const int MinimumRepeatBlockRounds = 10;
+    private const int EventSequenceLength = 50;
     private sealed class EventAssignment
     {
         public required IRoundEvent Event { get; init; }
@@ -18,6 +20,10 @@ public sealed class RoundEventManager
     private readonly List<EventAssignment> _active = new();
     // Each item represents one complete round, including nested events.
     private readonly Queue<HashSet<string>> _eventHistory = new();
+    // One current-match sequence shared by root and composite child events.
+    // A selected event leaves the sequence, so it cannot be selected again
+    // until the 50-entry sequence has been exhausted and reshuffled.
+    private readonly NonRepeatingSequence<IRoundEvent> _eventSequence = new();
     private string? _forcedNextEventId;
 
     public RoundPlan? CurrentPlan { get; private set; }
@@ -203,7 +209,7 @@ public sealed class RoundEventManager
                     .ToArray();
             }
 
-            root = WeightedSelector.Select(rootCandidates, GetWeight) ?? GetNormalEvent();
+            root = TakeNextEvent(rootCandidates) ?? GetNormalEvent();
         }
 
         var selected = new List<IRoundEvent> { root };
@@ -235,7 +241,7 @@ public sealed class RoundEventManager
                     .ToArray();
             }
 
-            var child = WeightedSelector.Select(candidates, GetWeight);
+            var child = TakeNextEvent(candidates);
             if (child is null)
             {
                 _plugin.Logger.LogWarning(
@@ -256,6 +262,39 @@ public sealed class RoundEventManager
     private RoundPlan ResolveNormalPlan()
     {
         return BuildPlan(new[] { GetNormalEvent() });
+    }
+
+    private IRoundEvent? TakeNextEvent(IReadOnlyCollection<IRoundEvent> candidates)
+    {
+        if (candidates.Count == 0)
+        {
+            return null;
+        }
+
+        if (_eventSequence.Count == 0)
+        {
+            var sequenceCandidates = _registry.All
+                .Where(IsEnabled)
+                .Where(@event => GetWeight(@event) > 0)
+                .ToArray();
+            var sequence = WeightedSelector.BuildUniqueSequence(
+                sequenceCandidates,
+                EventSequenceLength,
+                GetWeight);
+            _eventSequence.Reset(sequence);
+            _plugin.Logger.LogInformation(
+                "Built a {Count}-event non-repeating sequence for the current match",
+                sequence.Count);
+        }
+
+        var candidateIds = candidates
+            .Select(@event => @event.Descriptor.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return _eventSequence.TryTake(
+            @event => candidateIds.Contains(@event.Descriptor.Id),
+            out var selected)
+            ? selected
+            : null;
     }
 
     private RoundPlan BuildPlan(IReadOnlyCollection<IRoundEvent> selected)
@@ -312,10 +351,17 @@ public sealed class RoundEventManager
 
     private void RememberEvents(IEnumerable<IRoundEvent> events)
     {
-        _eventHistory.Enqueue(events
+        var eventIds = events
             .Select(@event => @event.Descriptor.Id)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase));
-        var limit = Math.Max(0, _plugin.Config.EventRepeatBlockRounds);
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _eventHistory.Enqueue(eventIds);
+        // A forced/fallback event may bypass TakeNextEvent. Remove it from the
+        // current match deck so the same event cannot later be drawn from the
+        // still-pending part of this 50-entry sequence.
+        _eventSequence.RemoveWhere(@event => eventIds.Contains(@event.Descriptor.Id));
+        // Keep the requested ten-round cooldown even when an older config
+        // file still contains the previous default of seven rounds.
+        var limit = Math.Max(MinimumRepeatBlockRounds, _plugin.Config.EventRepeatBlockRounds);
         while (_eventHistory.Count > limit)
         {
             _eventHistory.Dequeue();

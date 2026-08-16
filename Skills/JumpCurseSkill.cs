@@ -73,6 +73,7 @@ public sealed class JumpCurseSkill : ISkill, IPlayerJumpSkill
             }
 
             pawn.AbsVelocity.Z = jumpVelocity;
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_vecAbsVelocity");
         }
     }
 }

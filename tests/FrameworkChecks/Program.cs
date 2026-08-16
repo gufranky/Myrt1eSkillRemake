@@ -14,6 +14,7 @@ var checks = new List<(string Name, Action Run)>
     ("ChooseCarnival produces ReplaceAll plan", CheckReplaceAll),
     ("Round plan clamps slots and active skill count", CheckPlanLimits),
     ("Default rarity weights favor high-rarity skills more often", CheckRarityWeights),
+    ("Skill and event sequences contain fifty unique entries", CheckNonRepeatingSequences),
     ("SpeedBoost is an exclusive 50-percent movement skill", CheckSpeedBoostDescriptor),
     ("DeathNote is a one-use active mutual-suicide skill", CheckDeathNoteDescriptor),
     ("ZoneReaper disables one bomb site for Counter-Terrorists", CheckZoneReaperDescriptor),
@@ -688,6 +689,39 @@ static void CheckRarityWeights()
         "Rare-or-higher skills must receive thirty percent of rarity-group selections.");
     Assert(weights["Legendary"] >= 4 && weights["Epic"] >= 10,
         "Epic and legendary skills must appear materially more often than the old defaults.");
+}
+
+static void CheckNonRepeatingSequences()
+{
+    var candidates = Enumerable.Range(1, 80).Select(value => $"entry-{value}").ToArray();
+    var skillSequence = RaritySelector.BuildUniqueSequence(
+        candidates,
+        50,
+        _ => SkillRarity.Common,
+        _ => 1,
+        _ => 1,
+        new Random(12345));
+    var eventSequence = WeightedSelector.BuildUniqueSequence(
+        candidates,
+        50,
+        _ => 1,
+        new Random(54321));
+
+    Assert(skillSequence.Count == 50 && skillSequence.Distinct().Count() == 50,
+        "A player skill sequence must contain fifty non-repeating entries.");
+    Assert(eventSequence.Count == 50 && eventSequence.Distinct().Count() == 50,
+        "The current-match event sequence must contain fifty non-repeating entries.");
+
+    var deck = new NonRepeatingSequence<string>();
+    deck.Reset(skillSequence);
+    var drawn = new List<string>();
+    while (deck.TryTake(_ => true, out var entry))
+    {
+        drawn.Add(entry!);
+    }
+
+    Assert(drawn.Count == 50 && drawn.Distinct().Count() == 50,
+        "Drawing a complete sequence must not reintroduce an already drawn entry.");
 }
 
 static void CheckExplosionsAreArtPlan()
@@ -2116,8 +2150,8 @@ static void CheckPresentationDefaults()
     Assert(config.SkillDescriptionDuration == 7, "Descriptions must remain for seven seconds.");
     Assert(config.YourSkillChatInfo && config.TeamMateSkillChatInfo,
         "Own and teammate skill chat announcements must be enabled by default.");
-    Assert(config.RepeatBlockRounds == 7 && config.EventRepeatBlockRounds == 7,
-        "Skills and events must both use a seven-round anti-repeat window by default.");
+    Assert(config.RepeatBlockRounds == 10 && config.EventRepeatBlockRounds == 10,
+        "Skills and events must both use a ten-round anti-repeat window by default.");
 }
 
 

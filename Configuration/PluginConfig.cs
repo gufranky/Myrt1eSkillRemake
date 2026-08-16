@@ -1023,7 +1023,7 @@ public sealed class PluginConfig : BasePluginConfig
     public bool TeamMateSkillChatInfo { get; set; } = true;
 
     [JsonPropertyName("RepeatBlockRounds")]
-    public int RepeatBlockRounds { get; set; } = 7;
+    public int RepeatBlockRounds { get; set; } = 10;
 
     [JsonPropertyName("ActivateWithUseKey")]
     public bool ActivateWithUseKey { get; set; } = true;
@@ -1998,7 +1998,7 @@ public sealed class PluginConfig : BasePluginConfig
     public int MaxEventsPerRound { get; set; } = 4;
 
     [JsonPropertyName("EventRepeatBlockRounds")]
-    public int EventRepeatBlockRounds { get; set; } = 7;
+    public int EventRepeatBlockRounds { get; set; } = 10;
 
     [JsonPropertyName("ChooseCarnivalSkillId")]
     public string ChooseCarnivalSkillId { get; set; } = "ChooseOneOfThree";

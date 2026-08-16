@@ -9,6 +9,8 @@ namespace Myrt1eSkill_Remake.Core;
 
 public sealed class SkillManager
 {
+    private const int MinimumRepeatBlockRounds = 10;
+    private const int SkillSequenceLength = 50;
     private readonly Myrt1eSkillRemakePlugin _plugin;
     private readonly SkillRegistry _registry;
     private readonly PerformanceMonitor _performance;
@@ -98,6 +100,7 @@ public sealed class SkillManager
 
             var descriptor = skill.Descriptor;
             if (existingIds.Contains(descriptor.Id)
+                || inheritorSession.HasRecentSkill(descriptor.Id)
                 || descriptor.ConflictTags.Overlaps(usedTags)
                 || (descriptor.Kind == SkillKind.Active && hasActiveSkill)
                 || !CanGrantRuntimeSkill(
@@ -114,6 +117,10 @@ public sealed class SkillManager
                 continue;
             }
 
+            // Runtime inheritance is still an assignment for cooldown
+            // purposes; otherwise Ghoul could reintroduce a skill inside the
+            // ten-round window without touching the history queue.
+            Remember(inheritorSession, descriptor.Id);
             inherited.Add(descriptor);
             existingIds.Add(descriptor.Id);
             usedTags.UnionWith(descriptor.ConflictTags);
@@ -189,23 +196,25 @@ public sealed class SkillManager
 
         ReleaseSkillChoiceReservations(reservationOwner);
 
+        var session = GetOrCreateSession(player);
         var excluded = excludedSkillIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (_sessions.TryGetValue(player.Slot, out var currentSession) && currentSession.Matches(player))
-        {
-            excluded.UnionWith(currentSession.Assignments.Select(item => item.Skill.Descriptor.Id));
-        }
+        excluded.UnionWith(session.Assignments.Select(item => item.Skill.Descriptor.Id));
 
         var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
         var candidates = _registry.All
             .Where(skill => !excluded.Contains(skill.Descriptor.Id))
             .Where(skill => CanGrantRuntimeSkill(skill, player, eligiblePlayers))
             .ToList();
-        if (_sessions.TryGetValue(player.Slot, out var session) && session.Matches(player))
+        if (session.Matches(player))
         {
             var preferred = candidates
                 .Where(skill => !session.HasRecentSkill(skill.Descriptor.Id))
                 .ToList();
-            if (preferred.Count >= Math.Min(count, candidates.Count))
+            // Never put a recently used skill back into the choice menu while
+            // any non-recent candidate exists. The previous count-based
+            // fallback could display (and accept) a skill inside its cooldown
+            // window when fewer than three fresh choices were available.
+            if (preferred.Count > 0)
             {
                 candidates = preferred;
             }
@@ -214,11 +223,7 @@ public sealed class SkillManager
         var selected = new List<ISkill>();
         while (selected.Count < count && candidates.Count > 0)
         {
-            var skill = RaritySelector.Select(
-                candidates,
-                GetRarity,
-                GetRarityWeight,
-                GetWeight);
+            var skill = TakeNextSkill(session, candidates);
             if (skill is null)
             {
                 break;
@@ -291,6 +296,12 @@ public sealed class SkillManager
         }
 
         var session = GetOrCreateSession(player);
+        if (session.HasRecentSkill(skill.Descriptor.Id))
+        {
+            error = $"Skill {skill.Descriptor.DisplayName} is still in the round cooldown.";
+            return false;
+        }
+
         var previousSkills = session.Assignments.Select(item => item.Skill).ToArray();
         RevokeSession(session, player);
         if (!GrantSkill(session, player, skill))
@@ -337,7 +348,17 @@ public sealed class SkillManager
             return false;
         }
 
-        var skillsToCopy = targetSession.Assignments.Select(item => item.Skill).ToArray();
+        var copierSession = GetOrCreateSession(copier);
+        var skillsToCopy = targetSession.Assignments
+            .Select(item => item.Skill)
+            .Where(skill => !copierSession.HasRecentSkill(skill.Descriptor.Id))
+            .ToArray();
+        if (skillsToCopy.Length == 0)
+        {
+            error = "Target skills are still inside the copier's round cooldown.";
+            return false;
+        }
+
         var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
         var incompatible = skillsToCopy.FirstOrDefault(skill =>
             !IsEligibleForPlayer(skill, copier, eligiblePlayers)
@@ -349,7 +370,6 @@ public sealed class SkillManager
             return false;
         }
 
-        var copierSession = GetOrCreateSession(copier);
         var previousSkills = copierSession.Assignments.Select(item => item.Skill).ToArray();
         RevokeSession(copierSession, copier);
 
@@ -357,6 +377,10 @@ public sealed class SkillManager
         {
             if (GrantSkill(copierSession, copier, skill))
             {
+                // Duplicator replaces assignments outside the normal draw
+                // path, so explicitly record every copied skill as used this
+                // round.
+                Remember(copierSession, skill.Descriptor.Id);
                 continue;
             }
 
@@ -390,7 +414,10 @@ public sealed class SkillManager
         var eligiblePlayers = Utilities.GetPlayers().Where(IsEligiblePlayer).ToArray();
         foreach (var player in eligiblePlayers)
         {
-            GetOrCreateSession(player).BeginSkillRound(_plugin.Config.RepeatBlockRounds);
+            // Keep the requested ten-round cooldown even when an older config
+            // file still contains the previous default of seven rounds.
+            GetOrCreateSession(player).BeginSkillRound(
+                Math.Max(MinimumRepeatBlockRounds, _plugin.Config.RepeatBlockRounds));
         }
 
         if (!plan.Enabled)
@@ -629,11 +656,7 @@ public sealed class SkillManager
             while (selected.Count < requestedCount)
             {
                 var candidates = GetCandidates(player, session, selected, eligiblePlayers, plan);
-                var skill = RaritySelector.Select(
-                    candidates,
-                    GetRarity,
-                    GetRarityWeight,
-                    GetWeight);
+                var skill = TakeNextSkill(session, candidates);
 
                 if (skill is null)
                 {
@@ -669,11 +692,7 @@ public sealed class SkillManager
                 eligiblePlayers,
                 plan,
                 failedSkillIds);
-            var replacement = RaritySelector.Select(
-                candidates,
-                GetRarity,
-                GetRarityWeight,
-                GetWeight);
+            var replacement = TakeNextSkill(session, candidates);
             if (replacement is null)
             {
                 break;
@@ -762,6 +781,44 @@ public sealed class SkillManager
 
         // A small enabled pool must not deadlock merely because all skills are recent.
         return preferred.Length > 0 ? preferred : compatible;
+    }
+
+    private ISkill? TakeNextSkill(
+        PlayerSession session,
+        IReadOnlyCollection<ISkill> candidates)
+    {
+        if (candidates.Count == 0)
+        {
+            return null;
+        }
+
+        if (session.SkillSequence.Count == 0)
+        {
+            var sequenceCandidates = _registry.All
+                .Where(IsEnabled)
+                .Where(skill => GetWeight(skill) > 0)
+                .ToArray();
+            var sequence = RaritySelector.BuildUniqueSequence(
+                sequenceCandidates,
+                SkillSequenceLength,
+                GetRarity,
+                GetRarityWeight,
+                GetWeight);
+            session.SkillSequence.Reset(sequence);
+            _plugin.Logger.LogInformation(
+                "Built a {Count}-skill non-repeating sequence for slot {Slot}",
+                sequence.Count,
+                session.Slot);
+        }
+
+        var candidateIds = candidates
+            .Select(skill => skill.Descriptor.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return session.SkillSequence.TryTake(
+            skill => candidateIds.Contains(skill.Descriptor.Id),
+            out var selected)
+            ? selected
+            : null;
     }
 
     private bool CanSelectSkill(
@@ -939,6 +996,12 @@ public sealed class SkillManager
     private void Remember(PlayerSession session, string skillId)
     {
         session.RememberSkillThisRound(skillId);
+        // Forced, inherited, copied, and menu-selected skills do not
+        // necessarily come from the normal draw path. Remove them from the
+        // pending sequence as well so they cannot reappear before its cycle
+        // is rebuilt.
+        session.SkillSequence.RemoveWhere(skill =>
+            skill.Descriptor.Id.Equals(skillId, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool IsEnabled(ISkill skill)

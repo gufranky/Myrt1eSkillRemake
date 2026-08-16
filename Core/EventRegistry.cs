@@ -64,7 +64,8 @@ public sealed class EventRegistry
         registry.Register(new MistAroundEvent(fog));
         registry.Register(new FindHimEvent(config.FindHimEvent, navMesh, wallhack));
         registry.Register(new NeckTiltEvent(config.NeckTiltEvent, playerView));
-        registry.Register(new BigHeadEvent(config.BigHeadEvent));
+        // Temporarily disabled at user request; restore this registration to re-enable 大头模式.
+        // registry.Register(new BigHeadEvent(config.BigHeadEvent));
         registry.Register(new FairDuelEvent());
         registry.Register(new FragileEveryoneEvent());
         registry.Register(new HelpingHandEvent(helpingHand));

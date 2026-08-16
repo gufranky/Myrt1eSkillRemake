@@ -147,7 +147,9 @@ public sealed class ChickenService : IDisposable
                     continue;
                 }
 
-                info.TransmitEntities.Remove(state.Pawn.Index);
+                // Keep the parent Pawn in the snapshot. The chicken model is
+                // parented to it; removing the parent makes the client stop
+                // receiving transform updates and leaves the model behind.
                 HideWeapons(info, state.Pawn);
             }
         }
