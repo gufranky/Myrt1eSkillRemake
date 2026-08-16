@@ -34,7 +34,7 @@ public sealed class InfiniteColoredSmokeEvent : RoundEventBase,
 
         foreach (var player in Utilities.GetPlayers())
         {
-            GiveSmoke(player);
+            ScheduleInitialSmoke(context, player);
         }
 
         PrintToChatAll("[娱乐事件] 🌈 无限彩烟：投出烟雾弹后会自动补充，每颗烟雾颜色随机！");
@@ -52,7 +52,7 @@ public sealed class InfiniteColoredSmokeEvent : RoundEventBase,
         {
             if (_active)
             {
-                GiveSmoke(player);
+                GiveReplacementSmoke(player);
             }
         });
     }
@@ -60,13 +60,7 @@ public sealed class InfiniteColoredSmokeEvent : RoundEventBase,
     public void OnPlayerSpawn(in RoundEventContext context, EventPlayerSpawn @event)
     {
         var player = @event.Userid;
-        context.Effects.AddTimer(0.1f, () =>
-        {
-            if (_active)
-            {
-                GiveSmoke(player);
-            }
-        });
+        ScheduleInitialSmoke(context, player);
     }
 
     public void OnEntitySpawned(in RoundEventContext context, CEntityInstance entity)
@@ -99,7 +93,29 @@ public sealed class InfiniteColoredSmokeEvent : RoundEventBase,
         });
     }
 
-    private static void GiveSmoke(CCSPlayerController? player)
+    private void ScheduleInitialSmoke(in RoundEventContext context, CCSPlayerController? player)
+    {
+        // RoundStart and PlayerSpawn can both arrive before the pawn is marked
+        // alive. Retry during the spawn transition, but retain the inventory
+        // check here so a normal smoke grenade is never duplicated.
+        GiveSmokeIfMissing(player);
+        context.Effects.AddTimer(0.20f, () =>
+        {
+            if (_active)
+            {
+                GiveSmokeIfMissing(player);
+            }
+        });
+        context.Effects.AddTimer(0.75f, () =>
+        {
+            if (_active)
+            {
+                GiveSmokeIfMissing(player);
+            }
+        });
+    }
+
+    private static void GiveSmokeIfMissing(CCSPlayerController? player)
     {
         if (player is not { IsValid: true, PawnIsAlive: true })
         {
@@ -110,6 +126,17 @@ public sealed class InfiniteColoredSmokeEvent : RoundEventBase,
             weapon => weapon.Value is { IsValid: true, DesignerName: "weapon_smokegrenade" }) == true;
         if (!alreadyHasSmoke)
         {
+            player.GiveNamedItem("weapon_smokegrenade");
+        }
+    }
+
+    private static void GiveReplacementSmoke(CCSPlayerController? player)
+    {
+        if (player is { IsValid: true, PawnIsAlive: true })
+        {
+            // The thrown-weapon handle may survive in MyWeapons for longer
+            // than the grenade-thrown callback. Do not use MyWeapons to
+            // decide whether a replacement is needed on this path.
             player.GiveNamedItem("weapon_smokegrenade");
         }
     }

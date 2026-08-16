@@ -269,7 +269,11 @@ public sealed class WallhackService : IDisposable
         if (start >= targets.Length)
         {
             _buildInProgress = false;
-            NetworkUpdateService.ForceFullUpdateToAllChunked();
+            // Do not force a full update through NetworkServerService here.
+            // That helper writes a client-memory field through a gamedata
+            // offset. After the recent CS2 update this became a native crash
+            // vector (SIGSEGV in counterstrikesharp.so). Newly-created props
+            // are replicated by the normal snapshot path without it.
             return;
         }
 

@@ -120,7 +120,7 @@ public sealed class ToxicSmokeSkill : ISkill,
             {
                 if (state.Active)
                 {
-                    GiveSmoke(player);
+                    GiveReplacementSmoke(player);
                 }
             });
         }
@@ -200,6 +200,14 @@ public sealed class ToxicSmokeSkill : ISkill,
         var alreadyHasSmoke = player.PlayerPawn.Value?.WeaponServices?.MyWeapons.Any(
             weapon => weapon.Value is { IsValid: true, DesignerName: "weapon_smokegrenade" }) == true;
         if (!alreadyHasSmoke)
+        {
+            player.GiveNamedItem("weapon_smokegrenade");
+        }
+    }
+
+    private static void GiveReplacementSmoke(CCSPlayerController player)
+    {
+        if (player is { IsValid: true, PawnIsAlive: true })
         {
             player.GiveNamedItem("weapon_smokegrenade");
         }

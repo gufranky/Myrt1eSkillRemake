@@ -117,7 +117,7 @@ public sealed class HealingSmokeSkill : ISkill,
         {
             if (state.Active)
             {
-                GiveSmoke(player);
+                GiveReplacementSmoke(player);
                 PluginText.Chat(player, "[治疗烟雾弹] 已补充烟雾弹（1/1）。");
             }
         });
@@ -180,6 +180,17 @@ public sealed class HealingSmokeSkill : ISkill,
             weapon => weapon.Value is { IsValid: true, DesignerName: "weapon_smokegrenade" }) == true;
         if (!alreadyHasSmoke)
         {
+            player.GiveNamedItem("weapon_smokegrenade");
+        }
+    }
+
+    private static void GiveReplacementSmoke(CCSPlayerController player)
+    {
+        if (player is { IsValid: true, PawnIsAlive: true })
+        {
+            // CS2 can retain the thrown smoke's handle in MyWeapons after the
+            // grenade-thrown event. Do not use that stale inventory snapshot
+            // to decide whether the configured replacement is needed.
             player.GiveNamedItem("weapon_smokegrenade");
         }
     }
