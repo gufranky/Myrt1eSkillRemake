@@ -239,6 +239,9 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         AddCommand("css_rskill_status", "Show random-skill plugin status", OnStatusCommand);
         AddCommand("css_useskill", "Activate your current active skill", OnUseSkillCommand);
         AddCommand("css_forceevent", "Force the next round event from server console", OnForceEventCommand);
+        AddCommand("css_wmap", "Load and change to a Steam Workshop map by published file ID", OnWorkshopMapCommand);
+        AddCommand("css_disableall", "Disable all random skills and events for this server session", OnDisableAllCommand);
+        AddCommand("css_enableall", "Enable all random skills and events for this server session", OnEnableAllCommand);
         AddCommand("css_nav_status", "Show current static NavMesh load status", OnNavStatusCommand);
         AddCommand("css_nav_randomtp", "Admin test: safely teleport yourself to a random reachable NAV area", OnNavRandomTeleportCommand);
 
@@ -338,6 +341,78 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         command.ReplyToCommand(_roundEventManager.ForceNextEvent(eventId)
             ? $"[Myrt1eSkill_Remake] Next round event forced to {eventId}."
             : $"[Myrt1eSkill_Remake] Unknown event: {eventId}.");
+    }
+
+    private void OnWorkshopMapCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player is { IsValid: true }
+            && (player.IsBot || !AdminManager.PlayerHasPermissions(player, "@css/generic")))
+        {
+            command.ReplyToCommand("[创意工坊] 你没有切换地图的权限。");
+            return;
+        }
+
+        if (command.ArgCount < 2
+            || !uint.TryParse(command.GetArg(1), out var workshopId)
+            || workshopId == 0)
+        {
+            command.ReplyToCommand("用法：!wmap <创意工坊地图数字 ID>");
+            return;
+        }
+
+        // The value is parsed as an unsigned integer before interpolation, so
+        // chat input cannot inject additional console commands. CS2 downloads
+        // and loads the published workshop map through this native command.
+        Server.ExecuteCommand($"host_workshop_map {workshopId}");
+        command.ReplyToCommand($"[创意工坊] 正在下载并切换地图：{workshopId}");
+        Logger.LogInformation(
+            "Workshop map change requested: id={WorkshopId}, requestedBy={RequestedBy}",
+            workshopId,
+            player?.SteamID.ToString() ?? "server-console");
+    }
+
+    private void OnDisableAllCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player is { IsValid: true }
+            && (player.IsBot || !AdminManager.PlayerHasPermissions(player, "@css/generic")))
+        {
+            command.ReplyToCommand("[随机技能] 你没有关闭技能和事件的权限。");
+            return;
+        }
+
+        // Cancel the pending reveal before revoking effects so a scheduled
+        // assignment cannot re-enable skills during the current freeze time.
+        Config.Enabled = false;
+        Config.EventsEnabled = false;
+        _roundCoordinator.CancelPendingAssignment();
+        _presentation.Clear();
+        _skillManager.RevokeAll();
+        _roundEventManager.EndRound();
+
+        Server.PrintToChatAll("[随机技能] 所有技能与事件已关闭，本次服务器运行期间不再分配。");
+        command.ReplyToCommand("[随机技能] 已关闭所有技能与事件；重启服务器或重新加载配置后恢复。");
+        Logger.LogInformation(
+            "All random skills and events disabled for this server session by {RequestedBy}",
+            player?.SteamID.ToString() ?? "server-console");
+    }
+
+    private void OnEnableAllCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player is { IsValid: true }
+            && (player.IsBot || !AdminManager.PlayerHasPermissions(player, "@css/generic")))
+        {
+            command.ReplyToCommand("[随机技能] 你没有启用技能和事件的权限。");
+            return;
+        }
+
+        Config.Enabled = true;
+        Config.EventsEnabled = true;
+
+        Server.PrintToChatAll("[随机技能] 所有技能与事件已启用，将从下一回合开始生效。");
+        command.ReplyToCommand("[随机技能] 已启用所有技能与事件；下一回合开始重新分配。");
+        Logger.LogInformation(
+            "All random skills and events enabled for this server session by {RequestedBy}",
+            player?.SteamID.ToString() ?? "server-console");
     }
 
     private void OnNavStatusCommand(CCSPlayerController? player, CommandInfo command)
