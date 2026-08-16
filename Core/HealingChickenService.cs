@@ -66,7 +66,6 @@ public sealed class HealingChickenService : IDisposable
         Remove(owner.Index);
         var state = new OwnerState { ControllerIndex = owner.Index };
         var amount = Math.Clamp(_settings.Amount, 1, 8);
-        var spawnRadius = PositiveFiniteOr(_settings.SpawnRadius, 100.0f);
         var chickenHealth = Math.Clamp(_settings.ChickenHealth, 1, 10000);
 
         for (var i = 0; i < amount; i++)
@@ -77,16 +76,16 @@ public sealed class HealingChickenService : IDisposable
                 continue;
             }
 
-            var angle = 2.0f * MathF.PI * i / amount;
-            var position = new Vector(
-                origin.X + MathF.Cos(angle) * spawnRadius,
-                origin.Y + MathF.Sin(angle) * spawnRadius,
-                origin.Z + 2.0f);
             chicken.DispatchSpawn();
             chicken.Render = Color.LightGreen;
             chicken.MaxHealth = chickenHealth;
             chicken.Health = chickenHealth;
-            chicken.Teleport(position, pawn.AbsRotation, new Vector(0.0f, 0.0f, 0.0f));
+            // Healing companions deliberately overlap their owner, so they
+            // never spread out or become separated around corners.
+            chicken.Teleport(
+                new Vector(origin.X, origin.Y, origin.Z),
+                pawn.AbsRotation,
+                new Vector(0.0f, 0.0f, 0.0f));
             chicken.Leader.Raw = owner.PlayerPawn.Raw;
             Utilities.SetStateChanged(chicken, "CBaseModelEntity", "m_clrRender");
             Utilities.SetStateChanged(chicken, "CBaseEntity", "m_iMaxHealth");
@@ -160,7 +159,8 @@ public sealed class HealingChickenService : IDisposable
                 ownerOrigin,
                 chickenState.Movement,
                 _settings.SpeedMultiplier,
-                _settings.MaximumExtraStep);
+                _settings.MaximumExtraStep,
+                teleportDirectlyToTarget: true);
 
             if (now < chickenState.NextHealAt)
             {

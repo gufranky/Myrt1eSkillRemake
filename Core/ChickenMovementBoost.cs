@@ -31,7 +31,8 @@ public static class ChickenMovementBoost
         float speedMultiplier,
         float maximumExtraStep,
         float maximumSpeed = float.PositiveInfinity,
-        bool allowTeleport = true)
+        bool allowTeleport = true,
+        bool teleportDirectlyToTarget = false)
     {
         var origin = chicken.AbsOrigin;
         if (!chicken.IsValid || origin is null)
@@ -55,28 +56,13 @@ public static class ChickenMovementBoost
         // Native chicken navigation can remain on a stale/disconnected path
         // after a long teleport or round transition. Recover near the leader
         // instead of letting every companion run forever toward an unreachable
-        // waypoint. The offset avoids spawning directly inside the target.
+        // waypoint. Most chickens use a small offset, but owner companions can
+        // deliberately occupy the owner's exact position.
         if (allowTeleport && distanceToTargetSquared >= TeleportDistanceSquared)
         {
-            var awayX = current.X - targetOrigin.X;
-            var awayY = current.Y - targetOrigin.Y;
-            var length = MathF.Sqrt(awayX * awayX + awayY * awayY);
-            if (!float.IsFinite(length) || length < 0.01f)
-            {
-                awayX = 1.0f;
-                awayY = 0.0f;
-                length = 1.0f;
-            }
-
-            var destination = new Vector(
-                targetOrigin.X + awayX / length * TeleportOffset,
-                targetOrigin.Y + awayY / length * TeleportOffset,
-                targetOrigin.Z + 2.0f);
-            chicken.Teleport(destination, chicken.AbsRotation, new Vector(0.0f, 0.0f, 0.0f));
-            state.LastOrigin = destination;
+            TeleportToTarget(chicken, targetOrigin, current, teleportDirectlyToTarget);
+            state.LastOrigin = chicken.AbsOrigin;
             state.StuckTicks = 0;
-            chicken.RepathTimer.Timestamp = 0.0f;
-            chicken.MoveRateThrottleTimer.Timestamp = 0.0f;
             return;
         }
 
@@ -115,7 +101,7 @@ public static class ChickenMovementBoost
                     && state.StuckTicks >= TeleportAfterStuckTicks
                     && distanceToTargetSquared >= 512.0f * 512.0f)
                 {
-                    TeleportNearTarget(chicken, targetOrigin, current);
+                    TeleportToTarget(chicken, targetOrigin, current, teleportDirectlyToTarget);
                     state.StuckTicks = 0;
                     return;
                 }
@@ -130,8 +116,23 @@ public static class ChickenMovementBoost
         state.LastOrigin = current;
     }
 
-    private static void TeleportNearTarget(CChicken chicken, Vector targetOrigin, Vector current)
+    private static void TeleportToTarget(
+        CChicken chicken,
+        Vector targetOrigin,
+        Vector current,
+        bool directlyOnTarget)
     {
+        if (directlyOnTarget)
+        {
+            chicken.Teleport(
+                new Vector(targetOrigin.X, targetOrigin.Y, targetOrigin.Z),
+                chicken.AbsRotation,
+                new Vector(0.0f, 0.0f, 0.0f));
+            chicken.RepathTimer.Timestamp = 0.0f;
+            chicken.MoveRateThrottleTimer.Timestamp = 0.0f;
+            return;
+        }
+
         var awayX = current.X - targetOrigin.X;
         var awayY = current.Y - targetOrigin.Y;
         var length = MathF.Sqrt(awayX * awayX + awayY * awayY);

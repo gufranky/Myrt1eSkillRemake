@@ -46,7 +46,12 @@ public sealed class SpecialHeartCompanionService : IDisposable
         chicken.MaxHealth = health;
         chicken.Health = health;
         SetScale(chicken, 3.0f);
-        chicken.Teleport(new Vector(origin.X + 48.0f, origin.Y, origin.Z + 2.0f), pawn.AbsRotation, new Vector(0, 0, 0));
+        // The heart is a companion, not an escort: it should occupy the
+        // owner's exact position from spawn onward.
+        chicken.Teleport(
+            new Vector(origin.X, origin.Y, origin.Z),
+            pawn.AbsRotation,
+            new Vector(0, 0, 0));
         chicken.Leader.Raw = owner.PlayerPawn.Raw;
         Utilities.SetStateChanged(chicken, "CBaseModelEntity", "m_clrRender");
         Utilities.SetStateChanged(chicken, "CBaseEntity", "m_iMaxHealth");
@@ -76,7 +81,13 @@ public sealed class SpecialHeartCompanionService : IDisposable
         var origin = pawn.AbsOrigin;
         if (origin is null) return true;
         if (chicken.Leader.Raw != owner.PlayerPawn.Raw) chicken.Leader.Raw = owner.PlayerPawn.Raw;
-        ChickenMovementBoost.Update(chicken, origin, _movement[owner.Index], PositiveOr(_settings.SpeedMultiplier, 3.0f), PositiveOr(_settings.MaximumExtraStep, 18.0f));
+        ChickenMovementBoost.Update(
+            chicken,
+            origin,
+            _movement[owner.Index],
+            PositiveOr(_settings.SpeedMultiplier, 3.0f),
+            PositiveOr(_settings.MaximumExtraStep, 18.0f),
+            teleportDirectlyToTarget: true);
         return true;
     }
 
