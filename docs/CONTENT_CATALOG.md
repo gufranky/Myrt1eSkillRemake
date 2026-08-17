@@ -189,4 +189,6 @@
 
 ## Registry audit (authoritative)
 
+| `OneShotAK` | 一发 AK | 武器规则 | 10 | 没收主副武器并发放 AK-47；当前弹匣始终只有 1 发，备用弹药由 `sv_infinite_ammo` 保持无限。 |
+
 The source registries currently contain **102 skills** and **52 events**. The historical totals in the older headings above (`88` and `32`) are stale and should be read as superseded by this audit. The three event entries added during this audit are `HurtTeleport`, `ExplosionsAreArt`, and `RainyDay`; the nine skill entries are `AdaptiveDisguise`, `Aimbot`, `DreadGaze`, `HurtTeleport`, `RandomTeleport`, `ReactiveArmor`, `TakeOff`, `WeaponSwap`, and `ZRY`.

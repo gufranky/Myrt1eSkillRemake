@@ -42,6 +42,9 @@ public sealed class EventRegistry
         registry.Register(new InfiniteAmmoModeEvent());
         registry.Register(new DeadlyGrenadesEvent(config.DeadlyGrenades));
         registry.Register(new BirdshotKingEvent());
+        registry.Register(new OneShotAkEvent());
+        registry.Register(new HeadshotOnlyEvent());
+        registry.Register(new SharedLifeEvent());
         registry.Register(new ReloadTeleportEvent(navMesh));
         registry.Register(new StrangerEvent(navMesh));
         registry.Register(new CarefulShotEvent());
