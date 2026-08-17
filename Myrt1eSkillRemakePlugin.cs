@@ -300,8 +300,11 @@ public sealed class Myrt1eSkillRemakePlugin : BasePlugin, IPluginConfig<PluginCo
         Logger.LogInformation("{Plugin} unloaded (hotReload={HotReload})", ModuleName, hotReload);
     }
 
-    private static void OnServerPrecacheResources(ResourceManifest manifest) =>
+    private static void OnServerPrecacheResources(ResourceManifest manifest)
+    {
         manifest.AddResource("models/props_junk/watermelon01.vmdl");
+        manifest.AddResource("particles/explosions_fx/explosion_smokegrenade_init.vpcf");
+    }
 
     private void OnStatusCommand(CCSPlayerController? player, CommandInfo command)
     {

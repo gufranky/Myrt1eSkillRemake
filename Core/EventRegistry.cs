@@ -39,6 +39,7 @@ public sealed class EventRegistry
         registry.Register(new DecoyTeleportEvent());
         registry.Register(new ChickenModeEvent());
         registry.Register(new BankruptcyEvent());
+        registry.Register(new BankruptcyGunEvent());
         registry.Register(new InfiniteAmmoModeEvent());
         registry.Register(new DeadlyGrenadesEvent(config.DeadlyGrenades));
         registry.Register(new BirdshotKingEvent());

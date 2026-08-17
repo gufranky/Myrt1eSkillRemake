@@ -158,6 +158,7 @@ public sealed class SkillRegistry
         registry.Register(new JammerSkill(crosshairs));
         registry.Register(new DeafSkill(deafSounds));
         registry.Register(new IlliterateSkill(illiterate));
+        registry.Register(new EnemySmokingSkill());
         return registry;
     }
 

@@ -11,7 +11,13 @@ namespace Myrt1eSkill_Remake.Core;
 /// </summary>
 public sealed class RoundPresentationService
 {
-    public static readonly TimeSpan HudUpdateInterval = TimeSpan.FromMilliseconds(100);
+    // Keep the HUD responsive, but do not continuously repaint the center panel.
+    // jRandomSkills updates its cached HUD on a throttled frame and uses stable
+    // (integer-second) cooldown text. A 250 ms floor plus a one-second heartbeat
+    // gives the same behavior while allowing the panel to recover after a
+    // transient center message.
+    public static readonly TimeSpan HudUpdateInterval = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan HudHeartbeatInterval = TimeSpan.FromSeconds(1);
 
     private sealed record StatusLine(string Text, string Color);
 
@@ -24,6 +30,7 @@ public sealed class RoundPresentationService
     private long _generation;
     private readonly Dictionary<uint, Dictionary<string, StatusLine>> _statusLines = new();
     private readonly Dictionary<uint, (string Signature, string Content)> _hudCache = new();
+    private readonly Dictionary<uint, (string Content, DateTime SentAt)> _lastSentHud = new();
 
     public RoundPresentationService(Myrt1eSkillRemakePlugin plugin, SkillManager skills)
     {
@@ -40,6 +47,7 @@ public sealed class RoundPresentationService
         _descriptionExpiresAt = Expiry(now, _plugin.Config.SkillDescriptionDuration);
         _nextHudUpdateAt = DateTime.MinValue;
         _hudCache.Clear();
+        _lastSentHud.Clear();
 
         var players = EligiblePlayers().ToArray();
         foreach (var player in players)
@@ -68,6 +76,7 @@ public sealed class RoundPresentationService
         _nextHudUpdateAt = DateTime.MinValue;
         _statusLines.Clear();
         _hudCache.Clear();
+        _lastSentHud.Clear();
     }
 
     public void SetStatusLine(
@@ -123,7 +132,8 @@ public sealed class RoundPresentationService
             return;
         }
 
-        // Refresh at 60 Hz while the round HUD is active.
+        // Re-evaluate state at a modest rate; actual sends are further gated by
+        // content equality and the heartbeat below.
         if (now < _nextHudUpdateAt)
         {
             return;
@@ -147,7 +157,13 @@ public sealed class RoundPresentationService
                 _hudCache[player.Index] = cached;
             }
 
-            player.PrintToCenterHtml(cached.Content);
+            if (!_lastSentHud.TryGetValue(player.Index, out var last)
+                || !string.Equals(last.Content, cached.Content, StringComparison.Ordinal)
+                || now - last.SentAt >= HudHeartbeatInterval)
+            {
+                player.PrintToCenterHtml(cached.Content);
+                _lastSentHud[player.Index] = (cached.Content, now);
+            }
         }
     }
 
